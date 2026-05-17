@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit"                    Version="2.6.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.0" />
+    <PackageReference Include="dnlib"                   Version="3.3.2" />
+  </ItemGroup>
+
+  <!-- Reference only the non-WPF core logic from the extension -->
+  <ItemGroup>
+    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\DeepSearchOptions.cs"    Link="Core\DeepSearchOptions.cs" />
+    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\DeepSearchResult.cs"     Link="Core\DeepSearchResult.cs" />
+    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\DeepSearchResultGroup.cs" Link="Core\DeepSearchResultGroup.cs" />
+    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\MatchHelper.cs"          Link="Core\MatchHelper.cs" />
+    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\AssemblyDeepSearcher.cs" Link="Core\AssemblyDeepSearcher.cs" />
+    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\DeepSearchEngine.cs"     Link="Core\DeepSearchEngine.cs" />
+  </ItemGroup>
+
+</Project>
