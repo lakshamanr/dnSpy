@@ -22,6 +22,11 @@ $propsFile = Join-Path $PSScriptRoot 'DnSpyCommon.props'
 $version = ([xml](Get-Content $propsFile)).Project.PropertyGroup.DnSpyAssemblyInformationalVersion
 Write-Host "Version : $version"
 
+# ── Restore submodules (git clean wipes them during build cycles) ────────────
+Write-Host "Restoring submodules ..."
+git -C $PSScriptRoot submodule update --init --recursive
+if ($LASTEXITCODE) { Write-Error "submodule restore failed"; exit $LASTEXITCODE }
+
 # ── Output directory ─────────────────────────────────────────────────────────
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 Write-Host "Output  : $OutputDir`n"
@@ -43,8 +48,9 @@ function New-ReleaseZip([string]$sourceGlob, [string]$zipName) {
 
 function Invoke-Clean {
     Write-Host "Cleaning ..."
-    # clean-all.cmd exits 1 when VS index files are locked; that is harmless
+    # clean-all.cmd exits 1 when VS index files are locked by a running IDE; harmless
     cmd /c "$PSScriptRoot\clean-all.cmd"
+    $global:LASTEXITCODE = 0   # prevent the 1 from bleeding into the script exit code
     Write-Host ""
 }
 
@@ -70,3 +76,4 @@ Get-Item "$OutputDir\*.zip" | ForEach-Object {
     Write-Host "  $($_.Name)  $mb MB"
 }
 Write-Host "`nArtifacts saved to: $OutputDir" -ForegroundColor Green
+exit 0
