@@ -17,7 +17,7 @@ When you search for a class, method, field, or string literal, Deep Search:
 
 | Method | Detail |
 |---|---|
-| **Keyboard** | `Ctrl + Shift + D` |
+| **Keyboard** | `Ctrl + Alt + D` |
 | **Menu** | View → Deep Search |
 
 The panel docks in the horizontal tool window group (same row as the built-in Search panel).

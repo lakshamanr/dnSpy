@@ -29,6 +29,7 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 	public sealed class DeepSearchViewModel : ViewModelBase {
 		readonly IDeepSearchService _searchService;
 		readonly IPickDirectory _pickDirectory;
+		readonly IDeepSearchSettings _settings;
 
 		const int MaxHistoryItems = 20;
 
@@ -190,12 +191,17 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 		public ICommand CancelCommand { get; }
 		public ICommand BrowseFolderCommand { get; }
 
-		public DeepSearchViewModel(IDeepSearchService searchService, IPickDirectory pickDirectory) {
+		public DeepSearchViewModel(IDeepSearchService searchService, IPickDirectory pickDirectory, IDeepSearchSettings settings) {
 			_searchService = searchService;
 			_pickDirectory = pickDirectory;
+			_settings      = settings;
 
-			SearchCommand      = new RelayCommand(_ => StartSearch(),               _ => IsNotSearching && !string.IsNullOrWhiteSpace(SearchTerm));
-			CancelCommand      = new RelayCommand(_ => _searchService.CancelSearch(), _ => IsSearching);
+			// Restore previously saved history so the dropdown is populated immediately
+			foreach (var term in _settings.LoadHistory())
+				SearchHistory.Add(term);
+
+			SearchCommand       = new RelayCommand(_ => StartSearch(),                _ => IsNotSearching && !string.IsNullOrWhiteSpace(SearchTerm));
+			CancelCommand       = new RelayCommand(_ => _searchService.CancelSearch(), _ => IsSearching);
 			BrowseFolderCommand = new RelayCommand(_ => BrowseFolder());
 
 			_searchService.GroupFound      += OnGroupFound;
@@ -212,6 +218,9 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 			SearchHistory.Insert(0, SearchTerm);
 			while (SearchHistory.Count > MaxHistoryItems)
 				SearchHistory.RemoveAt(SearchHistory.Count - 1);
+
+			// Persist so history survives a restart
+			_settings.SaveHistory(SearchHistory);
 
 			ResultGroups.Clear();
 			TotalResults = 0;

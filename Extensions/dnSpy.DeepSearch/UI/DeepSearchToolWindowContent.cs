@@ -24,6 +24,7 @@ using System.Windows;
 using System.Windows.Input;
 using dnlib.DotNet;
 using dnSpy.Contracts.Controls;
+using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Documents;
 using dnSpy.Contracts.Documents.Tabs;
 using dnSpy.Contracts.MVVM;
@@ -40,21 +41,24 @@ namespace dnSpy.DeepSearch.UI {
 		readonly Lazy<IDocumentTabService> _tabService;
 		readonly Lazy<IDsDocumentService> _documentService;
 		readonly Lazy<IPickDirectory> _pickDirectory;
+		readonly Lazy<IDeepSearchSettings> _deepSearchSettings;
 
 		DeepSearchToolWindowContent? _content;
 		DeepSearchToolWindowContent Content =>
-			_content ??= new DeepSearchToolWindowContent(_searchService, _tabService, _documentService, _pickDirectory);
+			_content ??= new DeepSearchToolWindowContent(_searchService, _tabService, _documentService, _pickDirectory, _deepSearchSettings);
 
 		[ImportingConstructor]
 		public DeepSearchToolWindowContentProvider(
 			Lazy<IDeepSearchService> searchService,
 			Lazy<IDocumentTabService> tabService,
 			Lazy<IDsDocumentService> documentService,
-			Lazy<IPickDirectory> pickDirectory) {
-			_searchService   = searchService;
-			_tabService      = tabService;
-			_documentService = documentService;
-			_pickDirectory   = pickDirectory;
+			Lazy<IPickDirectory> pickDirectory,
+			Lazy<IDeepSearchSettings> deepSearchSettings) {
+			_searchService      = searchService;
+			_tabService         = tabService;
+			_documentService    = documentService;
+			_pickDirectory      = pickDirectory;
+			_deepSearchSettings = deepSearchSettings;
 		}
 
 		public IEnumerable<ToolWindowContentInfo> ContentInfos {
@@ -91,11 +95,12 @@ namespace dnSpy.DeepSearch.UI {
 			Lazy<IDeepSearchService> searchService,
 			Lazy<IDocumentTabService> tabService,
 			Lazy<IDsDocumentService> documentService,
-			Lazy<IPickDirectory> pickDirectory) {
+			Lazy<IPickDirectory> pickDirectory,
+			Lazy<IDeepSearchSettings> deepSearchSettings) {
 			_tabService      = tabService;
 			_documentService = documentService;
 
-			_vm = new DeepSearchViewModel(searchService.Value, pickDirectory.Value);
+			_vm = new DeepSearchViewModel(searchService.Value, pickDirectory.Value, deepSearchSettings.Value);
 			_control = new DeepSearchControl { DataContext = _vm };
 			_control.NavigateRequested += (s, e) => NavigateToSelectedResult();
 		}

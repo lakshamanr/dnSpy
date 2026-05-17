@@ -32,9 +32,9 @@ namespace dnSpy.DeepSearch.Core {
 
 			switch (mode) {
 			case MatchMode.Substring:
-				return input.Contains(pattern, caseSensitive
+				return input.IndexOf(pattern, caseSensitive
 					? StringComparison.Ordinal
-					: StringComparison.OrdinalIgnoreCase);
+					: StringComparison.OrdinalIgnoreCase) >= 0;
 
 			case MatchMode.Wildcard:
 				return IsWildcardMatch(input, pattern, caseSensitive);

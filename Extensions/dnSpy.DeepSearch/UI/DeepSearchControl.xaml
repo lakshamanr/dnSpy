@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mvvm="clr-namespace:dnSpy.Contracts.MVVM;assembly=dnSpy.Contracts.DnSpy">
 
-    <Grid mvvm:InitDataTemplateAP.Initialize="True" Background="Transparent">
+    <Grid Background="{DynamicResource TreeViewBackground}">
         <Grid.RowDefinitions>
             <!-- Search bar -->
             <RowDefinition Height="Auto"/>
@@ -21,15 +21,15 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ── Row 0: Search term + action buttons ───────────────────────── -->
-        <Grid Grid.Row="0" Margin="4,4,4,2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <ComboBox Grid.Column="0"
+        <!-- ── Row 0: Search term + action buttons ─────────────────────────────
+             Use DockPanel so the ComboBox fills remaining space regardless of the
+             theme's global ComboBox style (which sets HorizontalAlignment=Center). -->
+        <DockPanel Grid.Row="0" Margin="4,4,4,2" LastChildFill="True">
+            <Button DockPanel.Dock="Right" Content="Cancel" Margin="4,0,0,0" MinWidth="60"
+                    Command="{Binding CancelCommand}"/>
+            <Button DockPanel.Dock="Right" Content="Search" Margin="4,0,0,0" MinWidth="60"
+                    Command="{Binding SearchCommand}"/>
+            <ComboBox HorizontalAlignment="Stretch"
                       IsEditable="True"
                       Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}"
                       ItemsSource="{Binding SearchHistory}"
@@ -38,40 +38,35 @@
                     <KeyBinding Key="Return" Command="{Binding SearchCommand}"/>
                 </ComboBox.InputBindings>
             </ComboBox>
+        </DockPanel>
 
-            <Button Grid.Column="1" Content="Search" Margin="4,0,0,0" MinWidth="60"
-                    Command="{Binding SearchCommand}"/>
-            <Button Grid.Column="2" Content="Cancel" Margin="4,0,0,0" MinWidth="60"
-                    Command="{Binding CancelCommand}"/>
-        </Grid>
-
-        <!-- ── Row 1: Match mode + case sensitivity ──────────────────────── -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="6,2,4,2">
+        <!-- ── Row 1: Match mode + case sensitivity ──────────────────────────── -->
+        <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="6,2,4,2">
             <TextBlock Text="Match:" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <RadioButton Content="Substring" IsChecked="{Binding IsSubstring}" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <RadioButton Content="Wildcard"  IsChecked="{Binding IsWildcard}"  VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <RadioButton Content="Regex"     IsChecked="{Binding IsRegex}"     VerticalAlignment="Center" Margin="0,0,16,0"/>
+            <RadioButton Content="Regex"     IsChecked="{Binding IsRegex}"     VerticalAlignment="Center" Margin="0,0,12,0"/>
             <CheckBox    Content="Case-sensitive" IsChecked="{Binding CaseSensitive}" VerticalAlignment="Center"/>
-        </StackPanel>
+        </WrapPanel>
 
-        <!-- ── Row 2: Scope checkboxes ───────────────────────────────────── -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="6,2,4,2">
+        <!-- ── Row 2: Scope checkboxes ───────────────────────────────────────── -->
+        <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="6,2,4,2">
             <TextBlock Text="Scope:" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <CheckBox Content="Types"   IsChecked="{Binding ScopeTypes}"   VerticalAlignment="Center" Margin="0,0,8,0"/>
             <CheckBox Content="Methods" IsChecked="{Binding ScopeMethods}" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <CheckBox Content="Fields"  IsChecked="{Binding ScopeFields}"  VerticalAlignment="Center" Margin="0,0,8,0"/>
             <CheckBox Content="Strings" IsChecked="{Binding ScopeStrings}" VerticalAlignment="Center"/>
-        </StackPanel>
+        </WrapPanel>
 
-        <!-- ── Row 3: Source radio buttons ───────────────────────────────── -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="6,2,4,2">
+        <!-- ── Row 3: Source radio buttons ───────────────────────────────────── -->
+        <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="6,2,4,2">
             <TextBlock Text="Source:" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <RadioButton Content="Loaded assemblies" IsChecked="{Binding SourceLoaded}" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <RadioButton Content="Folder"            IsChecked="{Binding SourceFolder}" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <RadioButton Content="Both"              IsChecked="{Binding SourceBoth}"   VerticalAlignment="Center"/>
-        </StackPanel>
+        </WrapPanel>
 
-        <!-- ── Row 4: Folder path (hidden when source = loaded only) ──────── -->
+        <!-- ── Row 4: Folder path (hidden when source = loaded only) ──────────── -->
         <Grid Grid.Row="4" Margin="6,2,4,2"
               Visibility="{Binding IsFolderVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid.ColumnDefinitions>
@@ -86,14 +81,49 @@
             <CheckBox Grid.Column="2" Content="Subfolders" IsChecked="{Binding SearchSubfolders}" VerticalAlignment="Center"/>
         </Grid>
 
-        <!-- ── Row 5: Results tree ────────────────────────────────────────── -->
+        <!-- ── Row 5: Results tree ────────────────────────────────────────────── -->
         <TreeView Grid.Row="5" Margin="4,4,4,2"
                   x:Name="ResultsTree"
+                  Background="{DynamicResource TreeViewBackground}"
+                  BorderBrush="{DynamicResource TreeViewBorder}"
+                  BorderThickness="1"
+                  mvvm:InitDataTemplateAP.Initialize="True"
                   ItemsSource="{Binding ResultGroups}"
+                  ItemContainerStyle="{StaticResource DeepSearchGroupItemStyle}"
                   MouseDoubleClick="OnResultMouseDoubleClick"
                   KeyDown="OnResultKeyDown">
 
             <TreeView.Resources>
+                <!-- Base style: theme colours only — NO IsExpanded binding.
+                     Applied to leaf TreeViewItems (data context = DeepSearchResultVM)
+                     which have no IsExpanded property. -->
+                <Style x:Key="DeepSearchTreeItemStyle" TargetType="TreeViewItem">
+                    <Setter Property="Background"                 Value="Transparent"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource TreeViewItemSelectedBackground}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TreeViewItemSelectedForeground}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsSelected"  Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" Value="{DynamicResource TreeViewItemMouseOverTextBackground}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TreeViewItemMouseOverForeground}"/>
+                        </MultiTrigger>
+                    </Style.Triggers>
+                </Style>
+
+                <!-- Group style: extends base and adds the IsExpanded two-way binding.
+                     Applied only to top-level TreeViewItems whose data context is
+                     DeepSearchResultGroupVM, which does have IsExpanded. -->
+                <Style x:Key="DeepSearchGroupItemStyle" TargetType="TreeViewItem"
+                       BasedOn="{StaticResource DeepSearchTreeItemStyle}">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                </Style>
+
                 <!-- Leaf item (DeepSearchResultVM) -->
                 <DataTemplate x:Key="ResultItemTemplate">
                     <Grid Margin="2,1">
@@ -110,28 +140,25 @@
                         <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="2" Text="{Binding Location}"
-                                   Foreground="Gray" FontSize="10" Margin="6,0,0,0"
+                                   Opacity="0.65" FontSize="10" Margin="6,0,0,0"
+                                   MaxWidth="220"
                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                     </Grid>
                 </DataTemplate>
             </TreeView.Resources>
 
             <TreeView.ItemTemplate>
-                <!-- Group header (DeepSearchResultGroupVM) containing leaf results -->
+                <!-- ItemContainerStyle is set via StaticResource so the dark-theme selection
+                     colours apply to the nested leaf TreeViewItems as well as the group rows. -->
                 <HierarchicalDataTemplate ItemsSource="{Binding Results}"
-                                          ItemTemplate="{StaticResource ResultItemTemplate}">
+                                          ItemTemplate="{StaticResource ResultItemTemplate}"
+                                          ItemContainerStyle="{StaticResource DeepSearchTreeItemStyle}">
                     <TextBlock Text="{Binding Header}" FontWeight="SemiBold" Margin="2,1"/>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>
-
-            <TreeView.ItemContainerStyle>
-                <Style TargetType="TreeViewItem">
-                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                </Style>
-            </TreeView.ItemContainerStyle>
         </TreeView>
 
-        <!-- ── Row 6: Status bar ─────────────────────────────────────────── -->
+        <!-- ── Row 6: Status bar ─────────────────────────────────────────────── -->
         <Border Grid.Row="6" BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource CommonControlsTextBoxBorderBrush}">
             <Grid Margin="4,2">

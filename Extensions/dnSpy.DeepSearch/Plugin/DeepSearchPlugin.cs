@@ -22,14 +22,16 @@ using System.Windows.Input;
 using dnSpy.Contracts.Controls;
 using dnSpy.Contracts.Extension;
 using dnSpy.Contracts.Menus;
-using dnSpy.Contracts.MVVM;
 using dnSpy.Contracts.ToolWindows.App;
 using dnSpy.DeepSearch.UI;
 
 namespace dnSpy.DeepSearch.Plugin {
 	/// <summary>
-	/// Auto-loaded at startup: registers the Ctrl+Shift+D keyboard shortcut and wires the
+	/// Auto-loaded at startup: registers the Ctrl+Alt+D keyboard shortcut and wires the
 	/// command into the main window's command manager.
+	/// Note: Ctrl+Shift+D is already claimed by GoToMDTableRowUIHexEditorCommand (AsmEditor),
+	/// which always returns CanExecute=true when a .NET assembly is open, so it silently
+	/// steals Ctrl+Shift+D before Deep Search could receive it.
 	/// </summary>
 	[ExportAutoLoaded]
 	sealed class DeepSearchPluginLoader : IAutoLoaded {
@@ -39,8 +41,10 @@ namespace dnSpy.DeepSearch.Plugin {
 		[ImportingConstructor]
 		DeepSearchPluginLoader(IWpfCommandService wpfCommandService, IDsToolWindowService toolWindowService) {
 			var cmds = wpfCommandService.GetCommands(ControlConstants.GUID_MAINWINDOW);
-			cmds.Add(OpenDeepSearch, new RelayCommand(_ => toolWindowService.Show(DeepSearchToolWindowContent.THE_GUID)));
-			cmds.Add(OpenDeepSearch, ModifierKeys.Control | ModifierKeys.Shift, Key.D);
+			cmds.Add(OpenDeepSearch,
+				(s, e) => toolWindowService.Show(DeepSearchToolWindowContent.THE_GUID),
+				(s, e) => e.CanExecute = true,
+				ModifierKeys.Control | ModifierKeys.Alt, Key.D);
 		}
 	}
 
@@ -48,7 +52,7 @@ namespace dnSpy.DeepSearch.Plugin {
 	[ExportMenuItem(
 		OwnerGuid  = MenuConstants.APP_MENU_VIEW_GUID,
 		Header     = "_Deep Search",
-		InputGestureText = "Ctrl+Shift+D",
+		InputGestureText = "Ctrl+Alt+D",
 		Group      = MenuConstants.GROUP_APP_MENU_VIEW_WINDOWS,
 		Order      = 2100)]
 	sealed class DeepSearchViewMenuItem : MenuItemCommand {
