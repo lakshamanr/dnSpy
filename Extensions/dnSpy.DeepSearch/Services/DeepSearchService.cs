@@ -1,0 +1,102 @@
+/*
+    Copyright (C) 2024 dnSpy Contributors
+
+    This file is part of dnSpy
+
+    dnSpy is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    dnSpy is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with dnSpy.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.Composition;
+using System.IO;
+using dnlib.DotNet;
+using dnSpy.Contracts.Documents;
+using dnSpy.DeepSearch.Core;
+
+namespace dnSpy.DeepSearch.Services {
+	[Export(typeof(IDeepSearchService))]
+	sealed class DeepSearchService : IDeepSearchService {
+		readonly IDsDocumentService _documentService;
+		readonly DeepSearchEngine _engine;
+
+		public bool IsSearching => _engine.IsRunning;
+
+		public event EventHandler<DeepSearchGroupFoundEventArgs>? GroupFound;
+		public event EventHandler<DeepSearchCompletedEventArgs>? SearchCompleted;
+		public event EventHandler<string>? StatusChanged;
+
+		[ImportingConstructor]
+		public DeepSearchService(IDsDocumentService documentService) {
+			_documentService = documentService;
+			_engine = new DeepSearchEngine();
+			_engine.GroupFound      += (s, e) => GroupFound?.Invoke(this, e);
+			_engine.SearchCompleted += (s, e) => SearchCompleted?.Invoke(this, e);
+			_engine.StatusChanged   += (s, e) => StatusChanged?.Invoke(this, e);
+		}
+
+		public void StartSearch(DeepSearchOptions options) {
+			if (_engine.IsRunning)
+				return;
+			_engine.Start(CollectTargets(options), options);
+		}
+
+		public void CancelSearch() => _engine.Cancel();
+
+		IEnumerable<(ModuleDef module, string path, string name)> CollectTargets(DeepSearchOptions options) {
+			var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			if (options.Source == DllSource.LoadedAssemblies || options.Source == DllSource.Both) {
+				foreach (var doc in _documentService.GetDocuments()) {
+					var mod = doc.ModuleDef;
+					if (mod is null)
+						continue;
+					var path = doc.Filename ?? string.Empty;
+					if (!seen.Add(path))
+						continue;
+					yield return (mod, path, Path.GetFileName(path));
+				}
+			}
+
+			if (options.Source == DllSource.Folder || options.Source == DllSource.Both) {
+				if (!string.IsNullOrWhiteSpace(options.FolderPath) && Directory.Exists(options.FolderPath)) {
+					var searchOpt = options.SearchSubfolders
+						? SearchOption.AllDirectories
+						: SearchOption.TopDirectoryOnly;
+
+					foreach (var file in EnumeratePeFiles(options.FolderPath, searchOpt)) {
+						if (!seen.Add(file))
+							continue;
+						ModuleDef? mod = null;
+						try {
+							mod = ModuleDefMD.Load(file, new ModuleCreationOptions { TryToLoadPdbFromDisk = false });
+						}
+						catch {
+							// Not a .NET PE or unreadable — skip
+							continue;
+						}
+						yield return (mod, file, Path.GetFileName(file));
+					}
+				}
+			}
+		}
+
+		static IEnumerable<string> EnumeratePeFiles(string folder, SearchOption opt) {
+			foreach (var f in Directory.EnumerateFiles(folder, "*.dll", opt))
+				yield return f;
+			foreach (var f in Directory.EnumerateFiles(folder, "*.exe", opt))
+				yield return f;
+		}
+	}
+}
