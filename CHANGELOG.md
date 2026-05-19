@@ -4,6 +4,32 @@ All notable changes to the dnSpy.DeepSearch extension are documented here.
 
 ---
 
+## [0.4.0] — 2026-05-19
+
+### Added
+- **Persist search options** — scope checkboxes, match mode, case-sensitive, source, folder path, and subfolder toggle are saved across sessions via `IDeepSearchSettings.SaveOptions/LoadOptions`.
+- **Result count label** — `ResultSummary` shown in the status footer: `N result(s) in M assembl(ies)` after every search.
+- **Copy to clipboard** (context menu) — right-click any result row: Copy Name (`Namespace.Type.Member`), Copy Assembly Path, Copy All Results (formatted text).
+- **Export results** — Export… button writes all results as CSV or plain text (UTF-8) via `SaveFileDialog`.
+- **Namespace filter** — NS filter TextBox above the tree; filters displayed results by namespace on the client side without re-running the search.
+- **Custom attribute search** — `SearchScope.Attributes` checkbox; finds types/methods decorated with a specific attribute (e.g. `[Obsolete]`, `[DllImport]`). Result kind `A`.
+- **Return type / parameter type filter** — Type filter TextBox narrows Methods results to those whose return type or any parameter type contains the filter string.
+- **Determinate progress bar** — switches from indeterminate (target collection) to value-bound once the total assembly count is known.
+- **Base type / interface search** — `SearchScope.Inheritance` checkbox; finds types by base class name or implemented interface name.
+- **Find callers** (cross-reference) — right-click a `[M]` result → Find Callers; scans `call`/`callvirt`/`newobj` operands across all source assemblies for the selected method's full name.
+- **IL opcode search** — `SearchScope.IL Opcodes` checkbox + Opcode TextBox; finds all methods containing a specific IL instruction (e.g. `ldsfld`, `call`, `newobj`). Result kind `I`.
+- **Result diff / snapshot** — Snapshot button saves current result keys; Diff button shows only results added since the snapshot (prefixed `[NEW]`).
+- **NuGet / zip archive scanning** — `FolderScanner.EnumerateZipPeEntries` reads `.nupkg` and `.zip` files; DLLs are loaded from raw bytes (no temp files created).
+- **Unit tests** — `NewFeaturesTests.cs` covers all new scopes (Attributes, Inheritance, ILOpcodes, TypeFilter, DiffKey stability) and `FolderScanner.SafeEnumeratePeFiles`.
+- `ResultKind.Attribute` (label `A`) and `ResultKind.ILInstruction` (label `I`) added.
+- `DeepSearchResult.DiffKey` — stable composite key used for snapshot comparison.
+- `FolderScanner.cs` — extracted file-system helpers from `DeepSearchService` so the test project can link them without WPF/MEF dependencies.
+
+### Fixed
+- `DeepSearchEngineTests.StatusEvents_FireForEachAssembly` updated to account for the "Collecting…" status message that precedes per-assembly scanning messages.
+
+---
+
 ## [0.3.0] — 2026-05-19
 
 ### Added
