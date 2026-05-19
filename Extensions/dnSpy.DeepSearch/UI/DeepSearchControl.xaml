@@ -113,9 +113,10 @@
         <!-- ── Row 3: Source radio buttons ───────────────────────────────────── -->
         <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="6,2,4,2">
             <TextBlock Text="Source:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <RadioButton Content="Loaded assemblies" IsChecked="{Binding SourceLoaded}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <RadioButton Content="Folder"            IsChecked="{Binding SourceFolder}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <RadioButton Content="Both"              IsChecked="{Binding SourceBoth}"   VerticalAlignment="Center"/>
+            <RadioButton Content="Loaded assemblies" IsChecked="{Binding SourceLoaded}"   VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <RadioButton Content="Folder"            IsChecked="{Binding SourceFolder}"  VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <RadioButton Content="Both"              IsChecked="{Binding SourceBoth}"    VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <RadioButton Content="Attached process"  IsChecked="{Binding SourceAttached}" VerticalAlignment="Center"/>
         </WrapPanel>
 
         <!-- ── Row 4: Folder path (hidden when source = loaded only) ──────────── -->

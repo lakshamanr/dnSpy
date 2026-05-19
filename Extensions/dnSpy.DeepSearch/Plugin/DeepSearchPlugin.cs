@@ -41,6 +41,7 @@ namespace dnSpy.DeepSearch.Plugin {
 		[ImportingConstructor]
 		DeepSearchPluginLoader(IWpfCommandService wpfCommandService, IDsToolWindowService toolWindowService) {
 			var cmds = wpfCommandService.GetCommands(ControlConstants.GUID_MAINWINDOW);
+
 			cmds.Add(OpenDeepSearch,
 				(s, e) => toolWindowService.Show(DeepSearchToolWindowContent.THE_GUID),
 				(s, e) => e.CanExecute = true,
@@ -60,4 +61,5 @@ namespace dnSpy.DeepSearch.Plugin {
 			: base(DeepSearchPluginLoader.OpenDeepSearch) {
 		}
 	}
+
 }

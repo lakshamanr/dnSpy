@@ -19,6 +19,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using dnlib.DotNet;
@@ -75,10 +76,33 @@ namespace dnSpy.DeepSearch.Core {
 			_cts = new CancellationTokenSource();
 			var token = _cts.Token;
 
-			// Materialise the target list now so the caller's collection can change freely.
-			var targetList = new List<(ModuleDef module, string path, string name)>(targets);
+			// FIX: Enumerate targets (file I/O + ModuleDefMD.Load) on the background thread,
+			// not the UI thread, to prevent the app from hanging during folder scans.
+			Task.Run(() => {
+				Debug.WriteLine($"[DeepSearch] Background thread started. Source={options.Source}, Folder={options.FolderPath}");
+				StatusChanged?.Invoke(this, "Collecting search targets…");
 
-			Task.Run(() => RunSearch(targetList, options, token), token);
+				List<(ModuleDef module, string path, string name)> targetList;
+				try {
+					targetList = new List<(ModuleDef module, string path, string name)>(targets);
+				}
+				catch (OperationCanceledException) {
+					Debug.WriteLine("[DeepSearch] Collection cancelled.");
+					_cts = null;
+					SearchCompleted?.Invoke(this, new DeepSearchCompletedEventArgs(true, 0));
+					return;
+				}
+				catch (Exception ex) {
+					Debug.WriteLine($"[DeepSearch] Error collecting targets: {ex}");
+					_cts = null;
+					StatusChanged?.Invoke(this, $"Error collecting search targets: {ex.Message}");
+					SearchCompleted?.Invoke(this, new DeepSearchCompletedEventArgs(false, 0));
+					return;
+				}
+
+				Debug.WriteLine($"[DeepSearch] Collected {targetList.Count} targets.");
+				RunSearch(targetList, options, token);
+			}, token);
 		}
 
 		/// <summary>
@@ -98,6 +122,7 @@ namespace dnSpy.DeepSearch.Core {
 					token.ThrowIfCancellationRequested();
 
 					var (module, path, name) = targets[i];
+					Debug.WriteLine($"[DeepSearch] Scanning [{i + 1}/{targets.Count}]: {name}");
 					StatusChanged?.Invoke(this, $"Scanning: {name}  ({i + 1} of {targets.Count})");
 
 					var results = new List<DeepSearchResult>();
@@ -108,8 +133,9 @@ namespace dnSpy.DeepSearch.Core {
 					catch (OperationCanceledException) {
 						throw;
 					}
-					catch (Exception) {
+					catch (Exception ex) {
 						// Unreadable / obfuscated assembly — skip silently
+						Debug.WriteLine($"[DeepSearch] Skipping {name}: {ex.GetType().Name}: {ex.Message}");
 					}
 
 					if (results.Count > 0) {
@@ -121,9 +147,11 @@ namespace dnSpy.DeepSearch.Core {
 			}
 			catch (OperationCanceledException) {
 				cancelled = true;
+				Debug.WriteLine("[DeepSearch] Search cancelled.");
 			}
 			finally {
 				_cts = null;
+				Debug.WriteLine($"[DeepSearch] Search finished. Cancelled={cancelled}, Results={totalResults}");
 				SearchCompleted?.Invoke(this, new DeepSearchCompletedEventArgs(cancelled, totalResults));
 			}
 		}

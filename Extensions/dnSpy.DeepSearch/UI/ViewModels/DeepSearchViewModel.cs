@@ -134,6 +134,18 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 			}
 		}
 
+		bool _sourceAttached;
+		public bool SourceAttached {
+			get => _sourceAttached;
+			set {
+				if (_sourceAttached != value) {
+					_sourceAttached = value;
+					OnPropertyChanged(nameof(SourceAttached));
+					OnPropertyChanged(nameof(IsFolderVisible));
+				}
+			}
+		}
+
 		// Folder row is visible whenever a folder path is needed
 		public bool IsFolderVisible => SourceFolder || SourceBoth;
 
@@ -237,9 +249,10 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 			if (ScopeFields)  scope |= SearchScope.Fields;
 			if (ScopeStrings) scope |= SearchScope.Strings;
 
-			var source = SourceLoaded ? DllSource.LoadedAssemblies
-			           : SourceFolder ? DllSource.Folder
-			           : DllSource.Both;
+			var source = SourceAttached ? DllSource.AttachedProcess
+			           : SourceLoaded  ? DllSource.LoadedAssemblies
+			           : SourceFolder  ? DllSource.Folder
+			           :                 DllSource.Both;
 
 			var mode = IsWildcard ? MatchMode.Wildcard
 			         : IsRegex    ? MatchMode.Regex
@@ -277,8 +290,10 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 			});
 		}
 
+		// FIX: Use BeginInvoke (async/non-blocking) so the background search thread is not
+		// stalled waiting for the UI to process every single status-line update.
 		void OnStatusChanged(object? sender, string status) =>
-			Application.Current.Dispatcher.Invoke(() => StatusText = status);
+			Application.Current.Dispatcher.BeginInvoke(new Action(() => StatusText = status));
 
 		void BrowseFolder() {
 			var chosen = _pickDirectory.GetDirectory(string.IsNullOrWhiteSpace(FolderPath) ? null : FolderPath);

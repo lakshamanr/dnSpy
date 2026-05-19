@@ -20,8 +20,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.Diagnostics;
 using System.IO;
 using dnlib.DotNet;
+using dnSpy.Contracts.Debugger;
 using dnSpy.Contracts.Documents;
 using dnSpy.DeepSearch.Core;
 
@@ -30,6 +32,7 @@ namespace dnSpy.DeepSearch.Services {
 	sealed class DeepSearchService : IDeepSearchService {
 		readonly IDsDocumentService _documentService;
 		readonly DeepSearchEngine _engine;
+		readonly DbgManager? _dbgManager;
 
 		public bool IsSearching => _engine.IsRunning;
 
@@ -38,8 +41,9 @@ namespace dnSpy.DeepSearch.Services {
 		public event EventHandler<string>? StatusChanged;
 
 		[ImportingConstructor]
-		public DeepSearchService(IDsDocumentService documentService) {
+		public DeepSearchService(IDsDocumentService documentService, [Import(AllowDefault = true)] DbgManager? dbgManager = null) {
 			_documentService = documentService;
+			_dbgManager = dbgManager;
 			_engine = new DeepSearchEngine();
 			_engine.GroupFound      += (s, e) => GroupFound?.Invoke(this, e);
 			_engine.SearchCompleted += (s, e) => SearchCompleted?.Invoke(this, e);
@@ -63,19 +67,28 @@ namespace dnSpy.DeepSearch.Services {
 					if (mod is null)
 						continue;
 					var path = doc.Filename ?? string.Empty;
-					if (!seen.Add(path))
+					// Only deduplicate by path when we have one — multiple in-memory/dynamic
+					// modules all have path="" and must not all collapse to a single entry.
+					if (!string.IsNullOrEmpty(path) && !seen.Add(path))
 						continue;
-					yield return (mod, path, Path.GetFileName(path));
+					var displayName = string.IsNullOrEmpty(path)
+						? (mod.Assembly?.Name.String ?? mod.Name.String ?? "<unknown>")
+						: Path.GetFileName(path);
+					yield return (mod, path, displayName);
 				}
+			}
+
+			if (options.Source == DllSource.AttachedProcess) {
+				foreach (var item in GetAttachedProcessModules(seen))
+					yield return item;
 			}
 
 			if (options.Source == DllSource.Folder || options.Source == DllSource.Both) {
 				if (!string.IsNullOrWhiteSpace(options.FolderPath) && Directory.Exists(options.FolderPath)) {
-					var searchOpt = options.SearchSubfolders
-						? SearchOption.AllDirectories
-						: SearchOption.TopDirectoryOnly;
+					bool recurse = options.SearchSubfolders;
+					Debug.WriteLine($"[DeepSearch] Enumerating folder: {options.FolderPath}, recurse={recurse}");
 
-					foreach (var file in EnumeratePeFiles(options.FolderPath, searchOpt)) {
+					foreach (var file in SafeEnumeratePeFiles(options.FolderPath, recurse)) {
 						if (!seen.Add(file))
 							continue;
 						ModuleDef? mod = null;
@@ -84,6 +97,7 @@ namespace dnSpy.DeepSearch.Services {
 						}
 						catch {
 							// Not a .NET PE or unreadable — skip
+							Debug.WriteLine($"[DeepSearch] Skipped non-.NET file: {file}");
 							continue;
 						}
 						yield return (mod, file, Path.GetFileName(file));
@@ -92,11 +106,61 @@ namespace dnSpy.DeepSearch.Services {
 			}
 		}
 
-		static IEnumerable<string> EnumeratePeFiles(string folder, SearchOption opt) {
-			foreach (var f in Directory.EnumerateFiles(folder, "*.dll", opt))
-				yield return f;
-			foreach (var f in Directory.EnumerateFiles(folder, "*.exe", opt))
-				yield return f;
+		IEnumerable<(ModuleDef module, string path, string name)> GetAttachedProcessModules(HashSet<string> seen) {
+			var dbgMgr = _dbgManager;
+			if (dbgMgr is null) {
+				Debug.WriteLine("[DeepSearch] No debugger active — AttachedProcess source yielded nothing.");
+				yield break;
+			}
+
+			foreach (var process in dbgMgr.Processes) {
+				foreach (var runtime in process.Runtimes) {
+					foreach (var module in runtime.Modules) {
+						if (module.IsDynamic || module.IsInMemory)
+							continue;
+						var filename = module.Filename;
+						if (string.IsNullOrEmpty(filename))
+							continue;
+						if (!seen.Add(filename))
+							continue;
+						ModuleDef? mod = null;
+						try {
+							mod = ModuleDefMD.Load(filename, new ModuleCreationOptions { TryToLoadPdbFromDisk = false });
+						}
+						catch {
+							Debug.WriteLine($"[DeepSearch] Skipped process module: {filename}");
+							continue;
+						}
+						yield return (mod, filename, Path.GetFileName(filename));
+					}
+				}
+			}
+		}
+
+		// FIX: Replaces Directory.EnumerateFiles(..., AllDirectories) which throws
+		// UnauthorizedAccessException when a subdirectory is inaccessible (e.g. System32).
+		// Manual recursion lets us swallow per-directory access errors and continue.
+		static IEnumerable<string> SafeEnumeratePeFiles(string folder, bool recurse) {
+			// Files in this directory
+			string[]? dlls = null;
+			string[]? exes = null;
+			try { dlls = Directory.GetFiles(folder, "*.dll"); } catch (Exception ex) { Debug.WriteLine($"[DeepSearch] GetFiles *.dll failed in {folder}: {ex.Message}"); }
+			try { exes = Directory.GetFiles(folder, "*.exe"); } catch (Exception ex) { Debug.WriteLine($"[DeepSearch] GetFiles *.exe failed in {folder}: {ex.Message}"); }
+			if (dlls != null) foreach (var f in dlls) yield return f;
+			if (exes != null) foreach (var f in exes) yield return f;
+
+			if (!recurse)
+				yield break;
+
+			// Recurse into subdirectories — skip any that are inaccessible
+			string[]? subdirs = null;
+			try { subdirs = Directory.GetDirectories(folder); } catch (Exception ex) { Debug.WriteLine($"[DeepSearch] GetDirectories failed in {folder}: {ex.Message}"); }
+			if (subdirs is null)
+				yield break;
+
+			foreach (var sub in subdirs)
+				foreach (var f in SafeEnumeratePeFiles(sub, recurse: true))
+					yield return f;
 		}
 	}
 }

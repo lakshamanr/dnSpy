@@ -40,6 +40,8 @@ namespace dnSpy.DeepSearch.Core {
 		LoadedAssemblies,
 		Folder,
 		Both,
+		/// <summary>Modules currently loaded in the attached debug process via DbgManager.</summary>
+		AttachedProcess,
 	}
 
 	public sealed class DeepSearchOptions {
