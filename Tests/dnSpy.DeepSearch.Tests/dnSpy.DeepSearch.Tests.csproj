@@ -24,7 +24,13 @@
     <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\DeepSearchResultGroup.cs" Link="Core\DeepSearchResultGroup.cs" />
     <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\MatchHelper.cs"          Link="Core\MatchHelper.cs" />
     <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\AssemblyDeepSearcher.cs" Link="Core\AssemblyDeepSearcher.cs" />
-    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\DeepSearchEngine.cs"     Link="Core\DeepSearchEngine.cs" />
+    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\DeepSearchEngine.cs"      Link="Core\DeepSearchEngine.cs" />
+    <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\FolderScanner.cs"         Link="Core\FolderScanner.cs" />
+  </ItemGroup>
+
+  <!-- System.IO.Compression.FileSystem required for ZipFile on net48 -->
+  <ItemGroup>
+    <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
 
 </Project>

@@ -149,7 +149,10 @@ namespace dnSpy.DeepSearch.Tests {
 			engine.Start(targets, TypeOptions("x")); // no matches, but status fires
 
 			await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
-			Assert.Equal(2, statuses.Count);
+
+			// Engine fires "Collecting…" + one status per assembly scanned
+			var scanStatuses = statuses.FindAll(s => s.StartsWith("Scanning:"));
+			Assert.Equal(2, scanStatuses.Count);
 		}
 	}
 }

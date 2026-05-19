@@ -4,8 +4,7 @@
              xmlns:mvvm="clr-namespace:dnSpy.Contracts.MVVM;assembly=dnSpy.Contracts.DnSpy">
 
     <UserControl.Resources>
-        <!-- Base style: theme colours only — NO IsExpanded binding.
-             Applied to leaf TreeViewItems (data context = DeepSearchResultVM). -->
+        <!-- Base style for leaf result rows -->
         <Style x:Key="DeepSearchTreeItemStyle" TargetType="TreeViewItem">
             <Setter Property="Background"                 Value="Transparent"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -25,8 +24,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Group style: extends base and adds the IsExpanded two-way binding.
-             Applied to top-level TreeViewItems whose data context is DeepSearchResultGroupVM. -->
+        <!-- Group style: adds IsExpanded two-way binding -->
         <Style x:Key="DeepSearchGroupItemStyle" TargetType="TreeViewItem"
                BasedOn="{StaticResource DeepSearchTreeItemStyle}">
             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
@@ -57,25 +55,29 @@
 
     <Grid Background="{DynamicResource TreeViewBackground}">
         <Grid.RowDefinitions>
-            <!-- Search bar -->
+            <!-- Row 0: Search bar -->
             <RowDefinition Height="Auto"/>
-            <!-- Match mode + case -->
+            <!-- Row 1: Type filter -->
             <RowDefinition Height="Auto"/>
-            <!-- Scope checkboxes -->
+            <!-- Row 2: Match mode + case sensitivity -->
             <RowDefinition Height="Auto"/>
-            <!-- Source radio buttons -->
+            <!-- Row 3: Scope checkboxes -->
             <RowDefinition Height="Auto"/>
-            <!-- Folder row (conditionally visible) -->
+            <!-- Row 4: Opcode filter (conditional) -->
             <RowDefinition Height="Auto"/>
-            <!-- Results tree -->
+            <!-- Row 5: Source radio buttons -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 6: Folder row (conditional) -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 7: Namespace filter + toolbar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 8: Results tree -->
             <RowDefinition Height="*"/>
-            <!-- Status bar -->
+            <!-- Row 9: Status bar -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ── Row 0: Search term + action buttons ─────────────────────────────
-             Use DockPanel so the ComboBox fills remaining space regardless of the
-             theme's global ComboBox style (which sets HorizontalAlignment=Center). -->
+        <!-- ── Row 0: Search term + action buttons ─────────────────────────── -->
         <DockPanel Grid.Row="0" Margin="4,4,4,2" LastChildFill="True">
             <Button DockPanel.Dock="Right" Content="Cancel" Margin="4,0,0,0" MinWidth="60"
                     Command="{Binding CancelCommand}"/>
@@ -92,8 +94,16 @@
             </ComboBox>
         </DockPanel>
 
-        <!-- ── Row 1: Match mode + case sensitivity ──────────────────────────── -->
-        <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="6,2,4,2">
+        <!-- ── Row 1: Type filter ───────────────────────────────────────────── -->
+        <DockPanel Grid.Row="1" Margin="6,1,4,2">
+            <TextBlock DockPanel.Dock="Left" Text="Type filter:" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.8"/>
+            <TextBox Text="{Binding TypeFilter, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Narrows Methods results to those whose return type or a parameter type contains this text"
+                     VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <!-- ── Row 2: Match mode + case sensitivity ───────────────────────── -->
+        <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="6,2,4,2">
             <TextBlock Text="Match:" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <RadioButton Content="Substring" IsChecked="{Binding IsSubstring}" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <RadioButton Content="Wildcard"  IsChecked="{Binding IsWildcard}"  VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -101,26 +111,41 @@
             <CheckBox    Content="Case-sensitive" IsChecked="{Binding CaseSensitive}" VerticalAlignment="Center"/>
         </WrapPanel>
 
-        <!-- ── Row 2: Scope checkboxes ───────────────────────────────────────── -->
-        <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="6,2,4,2">
+        <!-- ── Row 3: Scope checkboxes ───────────────────────────────────────── -->
+        <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="6,2,4,2">
             <TextBlock Text="Scope:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <CheckBox Content="Types"   IsChecked="{Binding ScopeTypes}"   VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <CheckBox Content="Methods" IsChecked="{Binding ScopeMethods}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <CheckBox Content="Fields"  IsChecked="{Binding ScopeFields}"  VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <CheckBox Content="Strings" IsChecked="{Binding ScopeStrings}" VerticalAlignment="Center"/>
+            <CheckBox Content="Types"       IsChecked="{Binding ScopeTypes}"       VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <CheckBox Content="Methods"     IsChecked="{Binding ScopeMethods}"     VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <CheckBox Content="Fields"      IsChecked="{Binding ScopeFields}"      VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <CheckBox Content="Strings"     IsChecked="{Binding ScopeStrings}"     VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <CheckBox Content="Attributes"  IsChecked="{Binding ScopeAttributes}"  VerticalAlignment="Center" Margin="0,0,8,0"
+                      ToolTip="Search custom attributes ([Obsolete], [DllImport], etc.)"/>
+            <CheckBox Content="Inheritance" IsChecked="{Binding ScopeInheritance}" VerticalAlignment="Center" Margin="0,0,8,0"
+                      ToolTip="Find types by base class or implemented interface name"/>
+            <CheckBox Content="IL Opcodes"  IsChecked="{Binding ScopeILOpcodes}"   VerticalAlignment="Center"
+                      ToolTip="Find method bodies containing a specific IL opcode"/>
         </WrapPanel>
 
-        <!-- ── Row 3: Source radio buttons ───────────────────────────────────── -->
-        <WrapPanel Grid.Row="3" Orientation="Horizontal" Margin="6,2,4,2">
+        <!-- ── Row 4: Opcode filter (visible only when IL Opcodes scope is on) ── -->
+        <DockPanel Grid.Row="4" Margin="6,1,4,2"
+                   Visibility="{Binding IsOpcodeFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock DockPanel.Dock="Left" Text="Opcode:" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.8"/>
+            <TextBox Text="{Binding OpcodeFilter, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="IL opcode name to match, e.g. ldsfld, call, newobj, throw"
+                     VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <!-- ── Row 5: Source radio buttons ──────────────────────────────────── -->
+        <WrapPanel Grid.Row="5" Orientation="Horizontal" Margin="6,2,4,2">
             <TextBlock Text="Source:" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <RadioButton Content="Loaded assemblies" IsChecked="{Binding SourceLoaded}"   VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <RadioButton Content="Folder"            IsChecked="{Binding SourceFolder}"  VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <RadioButton Content="Both"              IsChecked="{Binding SourceBoth}"    VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <RadioButton Content="Folder"            IsChecked="{Binding SourceFolder}"   VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <RadioButton Content="Both"              IsChecked="{Binding SourceBoth}"     VerticalAlignment="Center" Margin="0,0,8,0"/>
             <RadioButton Content="Attached process"  IsChecked="{Binding SourceAttached}" VerticalAlignment="Center"/>
         </WrapPanel>
 
-        <!-- ── Row 4: Folder path (hidden when source = loaded only) ──────────── -->
-        <Grid Grid.Row="4" Margin="6,2,4,2"
+        <!-- ── Row 6: Folder path (hidden when source = loaded or attached) ─── -->
+        <Grid Grid.Row="6" Margin="6,2,4,2"
               Visibility="{Binding IsFolderVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -134,21 +159,55 @@
             <CheckBox Grid.Column="2" Content="Subfolders" IsChecked="{Binding SearchSubfolders}" VerticalAlignment="Center"/>
         </Grid>
 
-        <!-- ── Row 5: Results tree ────────────────────────────────────────────── -->
-        <TreeView Grid.Row="5" Margin="4,4,4,2"
+        <!-- ── Row 7: Namespace filter + action toolbar ──────────────────────── -->
+        <DockPanel Grid.Row="7" Margin="4,2,4,2">
+            <!-- Toolbar buttons on the right -->
+            <Button DockPanel.Dock="Right" Content="Diff" Margin="4,0,0,0" MinWidth="42"
+                    Command="{Binding ToggleDiffCommand}"
+                    ToolTip="Toggle diff mode — shows only results added since the last snapshot"/>
+            <Button DockPanel.Dock="Right" Content="Snapshot" Margin="4,0,0,0" MinWidth="62"
+                    Command="{Binding SnapshotCommand}"
+                    ToolTip="Save the current results as a baseline for diff comparison"/>
+            <Button DockPanel.Dock="Right" Content="Export…" Margin="4,0,0,0" MinWidth="62"
+                    Command="{Binding ExportCommand}"
+                    ToolTip="Export results to CSV or plain text"/>
+            <!-- Namespace filter TextBox fills remaining width -->
+            <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Left" Text="NS filter:" VerticalAlignment="Center" Margin="0,0,4,0" Opacity="0.8"/>
+                <TextBox Text="{Binding NamespaceFilter, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Filter displayed results by namespace (no re-search needed)"
+                         VerticalAlignment="Center"/>
+            </DockPanel>
+        </DockPanel>
+
+        <!-- ── Row 8: Results tree ─────────────────────────────────────────── -->
+        <TreeView Grid.Row="8" Margin="4,4,4,2"
                   x:Name="ResultsTree"
                   Background="{DynamicResource TreeViewBackground}"
                   BorderBrush="{DynamicResource TreeViewBorder}"
                   BorderThickness="1"
                   mvvm:InitDataTemplateAP.Initialize="True"
-                  ItemsSource="{Binding ResultGroups}"
+                  ItemsSource="{Binding FilteredResultGroups}"
                   ItemContainerStyle="{StaticResource DeepSearchGroupItemStyle}"
                   MouseDoubleClick="OnResultMouseDoubleClick"
-                  KeyDown="OnResultKeyDown">
+                  KeyDown="OnResultKeyDown"
+                  PreviewMouseRightButtonDown="OnResultPreviewMouseRightButtonDown">
+
+            <TreeView.ContextMenu>
+                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                    <MenuItem Header="Copy Name"          Command="{Binding CopyNameCommand}"
+                              ToolTip="Copy fully-qualified member name to clipboard"/>
+                    <MenuItem Header="Copy Assembly Path" Command="{Binding CopyPathCommand}"
+                              ToolTip="Copy the assembly file path to clipboard"/>
+                    <MenuItem Header="Copy All Results"   Command="{Binding CopyAllResultsCommand}"
+                              ToolTip="Copy all visible results as formatted text"/>
+                    <Separator/>
+                    <MenuItem Header="Find Callers"       Command="{Binding FindCallersCommand}"
+                              ToolTip="Find all call/callvirt sites that call this method across loaded assemblies"/>
+                </ContextMenu>
+            </TreeView.ContextMenu>
 
             <TreeView.ItemTemplate>
-                <!-- ItemContainerStyle is set via StaticResource so the dark-theme selection
-                     colours apply to the nested leaf TreeViewItems as well as the group rows. -->
                 <HierarchicalDataTemplate ItemsSource="{Binding Results}"
                                           ItemTemplate="{StaticResource ResultItemTemplate}"
                                           ItemContainerStyle="{StaticResource DeepSearchTreeItemStyle}">
@@ -157,18 +216,25 @@
             </TreeView.ItemTemplate>
         </TreeView>
 
-        <!-- ── Row 6: Status bar ─────────────────────────────────────────────── -->
-        <Border Grid.Row="6" BorderThickness="0,1,0,0"
+        <!-- ── Row 9: Status bar ─────────────────────────────────────────────── -->
+        <Border Grid.Row="9" BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource CommonControlsTextBoxBorderBrush}">
             <Grid Margin="4,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="{Binding StatusText}"
                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                <ProgressBar Grid.Column="1" Width="80" Height="12" Margin="8,0,0,0"
-                             IsIndeterminate="True"
+                <!-- Result count badge -->
+                <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="10" Opacity="0.75"
+                           Text="{Binding ResultSummary}"/>
+                <!-- Progress bar: determinate when total is known, indeterminate while collecting targets -->
+                <ProgressBar Grid.Column="2" Width="80" Height="12" Margin="8,0,0,0"
+                             IsIndeterminate="{Binding IsProgressIndeterminate}"
+                             Value="{Binding ProgressValue, Mode=OneWay}"
+                             Maximum="{Binding ProgressMax, Mode=OneWay, FallbackValue=1}"
                              Visibility="{Binding IsSearching, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </Grid>
         </Border>

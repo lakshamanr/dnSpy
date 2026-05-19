@@ -20,6 +20,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using dnSpy.DeepSearch.UI.ViewModels;
 
 namespace dnSpy.DeepSearch.UI {
@@ -41,8 +42,28 @@ namespace dnSpy.DeepSearch.UI {
 			}
 		}
 
+		// Ensure the item under the mouse is selected before the context menu opens so that
+		// VM commands (CopyName, FindCallers, etc.) operate on the right item.
+		void OnResultPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e) {
+			var element = e.OriginalSource as DependencyObject;
+			while (element != null && element is not TreeViewItem)
+				element = VisualTreeHelper.GetParent(element);
+
+			if (element is not TreeViewItem tvi) return;
+			tvi.IsSelected = true;
+
+			if (DataContext is not DeepSearchViewModel vm) return;
+			if (tvi.DataContext is DeepSearchResultVM rv) {
+				vm.SelectedResult = rv;
+				vm.SelectedGroup  = null;
+			}
+			else if (tvi.DataContext is DeepSearchResultGroupVM gv) {
+				vm.SelectedGroup  = gv;
+				vm.SelectedResult = null;
+			}
+		}
+
 		DeepSearchResultVM? GetSelectedResult() {
-			// Walk up from the TreeViewItem that owns the selected item
 			if (ResultsTree.SelectedItem is DeepSearchResultVM result) {
 				if (DataContext is DeepSearchViewModel vm)
 					vm.SelectedResult = result;

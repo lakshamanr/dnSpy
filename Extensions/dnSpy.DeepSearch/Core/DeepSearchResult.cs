@@ -27,49 +27,43 @@ namespace dnSpy.DeepSearch.Core {
 		Property,
 		Event,
 		StringLiteral,
+		Attribute,      // custom attribute on a type or method
+		ILInstruction,  // IL opcode match
 	}
 
 	public sealed class DeepSearchResult {
-		public ResultKind Kind { get; }
-		public string Name { get; }
-		public string ContainingType { get; }
-		public string Namespace { get; }
-		public string AssemblyPath { get; }
-		public string AssemblyName { get; }
-
-		// The dnlib token provider used for navigation (TypeDef, MethodDef, FieldDef, etc.)
+		public ResultKind Kind         { get; }
+		public string Name             { get; }
+		public string ContainingType   { get; }
+		public string Namespace        { get; }
+		public string AssemblyPath     { get; }
+		public string AssemblyName     { get; }
 		public IMDTokenProvider TokenProvider { get; }
-
-		// Only set for StringLiteral results — the IL offset of the ldstr instruction
-		public uint? ILOffset { get; }
-
-		// Only set for StringLiteral results — the actual matched string value
-		public string? MatchedValue { get; }
+		public uint? ILOffset          { get; }
+		public string? MatchedValue    { get; }
 
 		public DeepSearchResult(
-			ResultKind kind,
-			string name,
-			string containingType,
-			string ns,
-			string assemblyPath,
-			string assemblyName,
+			ResultKind kind, string name, string containingType,
+			string ns, string assemblyPath, string assemblyName,
 			IMDTokenProvider tokenProvider,
-			uint? ilOffset = null,
-			string? matchedValue = null) {
-			Kind = kind;
-			Name = name;
+			uint? ilOffset = null, string? matchedValue = null) {
+			Kind           = kind;
+			Name           = name;
 			ContainingType = containingType;
-			Namespace = ns;
-			AssemblyPath = assemblyPath;
-			AssemblyName = assemblyName;
-			TokenProvider = tokenProvider;
-			ILOffset = ilOffset;
-			MatchedValue = matchedValue;
+			Namespace      = ns;
+			AssemblyPath   = assemblyPath;
+			AssemblyName   = assemblyName;
+			TokenProvider  = tokenProvider;
+			ILOffset       = ilOffset;
+			MatchedValue   = matchedValue;
 		}
 
-		public string DisplayName => Kind == ResultKind.StringLiteral
-			? $"\"{MatchedValue}\"  in  {Name}()"
-			: Name;
+		public string DisplayName => Kind switch {
+			ResultKind.StringLiteral => $"\"{MatchedValue}\"  in  {Name}()",
+			ResultKind.Attribute     => $"[{Name}]  on  {ContainingType}",
+			ResultKind.ILInstruction => $"{MatchedValue}  in  {Name}()",
+			_                        => Name,
+		};
 
 		public string Location {
 			get {
@@ -88,7 +82,12 @@ namespace dnSpy.DeepSearch.Core {
 			ResultKind.Property      => "P",
 			ResultKind.Event         => "E",
 			ResultKind.StringLiteral => "S",
+			ResultKind.Attribute     => "A",
+			ResultKind.ILInstruction => "I",
 			_                        => "?",
 		};
+
+		/// <summary>Stable key used for snapshot diff comparison.</summary>
+		public string DiffKey => $"{AssemblyName}|{Kind}|{Name}|{Location}";
 	}
 }
