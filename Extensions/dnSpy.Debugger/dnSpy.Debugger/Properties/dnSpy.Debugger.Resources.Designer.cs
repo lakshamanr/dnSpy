@@ -2902,6 +2902,69 @@ namespace dnSpy.Debugger.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Re_attach to Last Process.
+        /// </summary>
+        public static string ReattachToProcessCommand {
+            get {
+                return ResourceManager.GetString("ReattachToProcessCommand", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Re_attach to {0} ({1}).
+        /// </summary>
+        public static string ReattachToProcessFormatCommand {
+            get {
+                return ResourceManager.GetString("ReattachToProcessFormatCommand", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Re_attach to {0}.
+        /// </summary>
+        public static string ReattachToProcessShortFormatCommand {
+            get {
+                return ResourceManager.GetString("ReattachToProcessShortFormatCommand", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reattach failed: {0}.
+        /// </summary>
+        public static string Reattach_AttachFailed {
+            get {
+                return ResourceManager.GetString("Reattach_AttachFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to enumerate processes: {0}.
+        /// </summary>
+        public static string Reattach_EnumerateFailed {
+            get {
+                return ResourceManager.GetString("Reattach_EnumerateFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No previous attach session is remembered.
+        /// </summary>
+        public static string Reattach_NoLast {
+            get {
+                return ResourceManager.GetString("Reattach_NoLast", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find a running process matching '{0}'.
+        /// </summary>
+        public static string Reattach_NotFound {
+            get {
+                return ResourceManager.GetString("Reattach_NotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to _Restart.
         /// </summary>
         public static string RestartCommand {
@@ -3276,6 +3339,15 @@ namespace dnSpy.Debugger.Properties {
         public static string ShortCutKeyCtrlShiftF9 {
             get {
                 return ResourceManager.GetString("ShortCutKeyCtrlShiftF9", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ctrl+Shift+P.
+        /// </summary>
+        public static string ShortCutKeyCtrlShiftP {
+            get {
+                return ResourceManager.GetString("ShortCutKeyCtrlShiftP", resourceCulture);
             }
         }
         

@@ -23,8 +23,10 @@ using System.Linq;
 using System.Windows;
 using dnSpy.Contracts.App;
 using dnSpy.Contracts.Debugger;
+using dnSpy.Contracts.Debugger.Attach;
 using dnSpy.Contracts.Debugger.Attach.Dialogs;
 using dnSpy.Contracts.Text.Classification;
+using dnSpy.Debugger.Attach.Reattach;
 using dnSpy.Debugger.UI;
 using Microsoft.VisualStudio.Text.Classification;
 
@@ -40,10 +42,11 @@ namespace dnSpy.Debugger.Dialogs.AttachToProcess {
 		readonly Lazy<DebuggerSettings> debuggerSettings;
 		readonly Lazy<ProgramFormatterProvider> programFormatterProvider;
 		readonly IMessageBoxService messageBoxService;
+		readonly Lazy<IReattachService> reattachService;
 		string? lastFilterText;
 
 		[ImportingConstructor]
-		ShowAttachToProcessDialogImpl(IAppWindow appWindow, Lazy<UIDispatcher> uiDispatcher, IClassificationFormatMapService classificationFormatMapService, ITextElementProvider textElementProvider, Lazy<AttachProgramOptionsAggregatorFactory> attachProgramOptionsAggregatorFactory, Lazy<DbgManager> dbgManager, Lazy<DebuggerSettings> debuggerSettings, Lazy<ProgramFormatterProvider> programFormatterProvider, IMessageBoxService messageBoxService) {
+		ShowAttachToProcessDialogImpl(IAppWindow appWindow, Lazy<UIDispatcher> uiDispatcher, IClassificationFormatMapService classificationFormatMapService, ITextElementProvider textElementProvider, Lazy<AttachProgramOptionsAggregatorFactory> attachProgramOptionsAggregatorFactory, Lazy<DbgManager> dbgManager, Lazy<DebuggerSettings> debuggerSettings, Lazy<ProgramFormatterProvider> programFormatterProvider, IMessageBoxService messageBoxService, Lazy<IReattachService> reattachService) {
 			this.appWindow = appWindow;
 			this.uiDispatcher = uiDispatcher;
 			this.classificationFormatMapService = classificationFormatMapService;
@@ -53,9 +56,15 @@ namespace dnSpy.Debugger.Dialogs.AttachToProcess {
 			this.debuggerSettings = debuggerSettings;
 			this.programFormatterProvider = programFormatterProvider;
 			this.messageBoxService = messageBoxService;
+			this.reattachService = reattachService;
 		}
 
 		public override AttachToProgramOptions[] Show(ShowAttachToProcessDialogOptions? options) {
+			var result = ShowCore(options);
+			return result.Select(a => a.options.GetOptions()).ToArray();
+		}
+
+		(AttachProgramOptions options, string name, string filename)[] ShowCore(ShowAttachToProcessDialogOptions? options) {
 			AttachToProcessVM? vm = null;
 			try {
 				var dlg = new AttachToProcessDlg();
@@ -65,9 +74,9 @@ namespace dnSpy.Debugger.Dialogs.AttachToProcess {
 				dlg.Owner = appWindow.MainWindow;
 				var res = dlg.ShowDialog();
 				if (res != true)
-					return Array.Empty<AttachToProgramOptions>();
+					return Array.Empty<(AttachProgramOptions, string, string)>();
 				lastFilterText = vm.FilterText;
-				return vm.SelectedItems.Select(a => a.AttachProgramOptions.GetOptions()).ToArray();
+				return vm.SelectedItems.Select(a => (a.AttachProgramOptions, a.Name ?? string.Empty, a.Filename ?? string.Empty)).ToArray();
 			}
 			finally {
 				vm?.Dispose();
@@ -77,9 +86,13 @@ namespace dnSpy.Debugger.Dialogs.AttachToProcess {
 		void SearchHelp(AttachToProcessVM vm, DependencyObject control) => messageBoxService.Show(vm.GetSearchHelpText(), ownerWindow: Window.GetWindow(control));
 
 		public override void Attach(ShowAttachToProcessDialogOptions? options) {
-			var attachOptions = Show(options);
-			foreach (var o in attachOptions)
-				dbgManager.Value.Start(o);
+			var selected = ShowCore(options);
+			for (int i = 0; i < selected.Length; i++) {
+				var item = selected[i];
+				var errMsg = dbgManager.Value.Start(item.options.GetOptions());
+				if (errMsg is null)
+					reattachService.Value.Record(item.options, item.name, item.filename);
+			}
 		}
 	}
 }

@@ -29,6 +29,11 @@ namespace dnSpy.Debugger.DbgUI {
 		public abstract void DebugProgram(bool pauseAtEntryPoint);
 		public abstract bool CanAttachProgram { get; }
 		public abstract void AttachProgram();
+		public abstract bool CanReattachProgram { get; }
+		public abstract void ReattachProgram();
+		public abstract string? LastAttachedDisplayName { get; }
+		public abstract int LastAttachedProcessId { get; }
+		public abstract event System.EventHandler? LastAttachedChanged;
 		public abstract bool CanContinue { get; }
 		public abstract void Continue();
 		public abstract bool CanBreakAll { get; }

@@ -38,6 +38,7 @@ using dnSpy.Contracts.Debugger.StartDebugging.Dialog;
 using dnSpy.Contracts.Debugger.Steppers;
 using dnSpy.Contracts.Documents;
 using dnSpy.Contracts.Documents.Tabs;
+using dnSpy.Debugger.Attach.Reattach;
 using dnSpy.Debugger.Breakpoints.Code.TextEditor;
 using dnSpy.Debugger.Code.TextEditor;
 using dnSpy.Debugger.Disassembly;
@@ -64,12 +65,13 @@ namespace dnSpy.Debugger.DbgUI {
 		readonly Lazy<DbgTextViewCodeLocationService> dbgTextViewCodeLocationService;
 		readonly Lazy<DbgExceptionFormatterService> dbgExceptionFormatterService;
 		readonly Lazy<DbgShowNativeCodeService> dbgShowNativeCodeService;
+		readonly Lazy<IReattachService> reattachService;
 		readonly DebuggerSettings debuggerSettings;
 
 		public override bool IsDebugging => dbgManager.Value.IsDebugging;
 
 		[ImportingConstructor]
-		DebuggerImpl(UIDispatcher uiDispatcher, Lazy<IMessageBoxService> messageBoxService, Lazy<IAppWindow> appWindow, Lazy<IDocumentTabService> documentTabService, Lazy<DbgManager> dbgManager, Lazy<StartDebuggingOptionsProvider> startDebuggingOptionsProvider, Lazy<ShowAttachToProcessDialog> showAttachToProcessDialog, Lazy<TextViewBreakpointService> textViewBreakpointService, Lazy<DbgCodeBreakpointsService> dbgCodeBreakpointsService, Lazy<DbgCallStackService> dbgCallStackService, Lazy<ReferenceNavigatorService> referenceNavigatorService, Lazy<DbgTextViewCodeLocationService> dbgTextViewCodeLocationService, Lazy<DbgExceptionFormatterService> dbgExceptionFormatterService, Lazy<DbgShowNativeCodeService> dbgShowNativeCodeService, DebuggerSettings debuggerSettings) {
+		DebuggerImpl(UIDispatcher uiDispatcher, Lazy<IMessageBoxService> messageBoxService, Lazy<IAppWindow> appWindow, Lazy<IDocumentTabService> documentTabService, Lazy<DbgManager> dbgManager, Lazy<StartDebuggingOptionsProvider> startDebuggingOptionsProvider, Lazy<ShowAttachToProcessDialog> showAttachToProcessDialog, Lazy<TextViewBreakpointService> textViewBreakpointService, Lazy<DbgCodeBreakpointsService> dbgCodeBreakpointsService, Lazy<DbgCallStackService> dbgCallStackService, Lazy<ReferenceNavigatorService> referenceNavigatorService, Lazy<DbgTextViewCodeLocationService> dbgTextViewCodeLocationService, Lazy<DbgExceptionFormatterService> dbgExceptionFormatterService, Lazy<DbgShowNativeCodeService> dbgShowNativeCodeService, Lazy<IReattachService> reattachService, DebuggerSettings debuggerSettings) {
 			this.uiDispatcher = uiDispatcher;
 			this.messageBoxService = messageBoxService;
 			this.appWindow = appWindow;
@@ -84,8 +86,10 @@ namespace dnSpy.Debugger.DbgUI {
 			this.dbgTextViewCodeLocationService = dbgTextViewCodeLocationService;
 			this.dbgExceptionFormatterService = dbgExceptionFormatterService;
 			this.dbgShowNativeCodeService = dbgShowNativeCodeService;
+			this.reattachService = reattachService;
 			this.debuggerSettings = debuggerSettings;
 			UI(() => appWindow.Value.MainWindowClosing += AppWindow_MainWindowClosing);
+			reattachService.Value.LastChanged += (_, e) => LastAttachedChanged?.Invoke(this, e);
 		}
 
 		void AppWindow_MainWindowClosing(object? sender, CancelEventArgs e) {
@@ -134,6 +138,12 @@ namespace dnSpy.Debugger.DbgUI {
 
 		public override bool CanAttachProgram => true;
 		public override void AttachProgram() => showAttachToProcessDialog.Value.Attach();
+
+		public override bool CanReattachProgram => !IsDebugging && reattachService.Value.CanReattach;
+		public override void ReattachProgram() => reattachService.Value.Reattach();
+		public override string? LastAttachedDisplayName => reattachService.Value.Last?.DisplayName;
+		public override int LastAttachedProcessId => reattachService.Value.Last?.LastProcessId ?? 0;
+		public override event EventHandler? LastAttachedChanged;
 
 		bool CanExecutePauseCommand => dbgManager.Value.IsDebugging && dbgManager.Value.IsRunning != true;
 		bool CanStepCommand => dbgManager.Value.CurrentThread.Current?.Process?.State == DbgProcessState.Paused;

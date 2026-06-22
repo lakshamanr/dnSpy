@@ -36,6 +36,7 @@ namespace dnSpy.Debugger.DbgUI {
 
 			cmds.Add(new RelayCommand(a => debugger.Value.StartWithoutDebugging(), a => debugger.Value.CanStartWithoutDebugging), ModifierKeys.Control, Key.F5);
 			cmds.Add(new RelayCommand(a => debugger.Value.AttachProgram(), a => debugger.Value.CanAttachProgram), ModifierKeys.Control | ModifierKeys.Alt, Key.P);
+			cmds.Add(new RelayCommand(a => debugger.Value.ReattachProgram(), a => debugger.Value.CanReattachProgram), ModifierKeys.Control | ModifierKeys.Shift, Key.P);
 			cmds.Add(new RelayCommand(a => debugger.Value.BreakAll(), a => debugger.Value.CanBreakAll), ModifierKeys.Control | ModifierKeys.Alt, Key.Cancel);
 			cmds.Add(new RelayCommand(a => debugger.Value.Restart(), a => debugger.Value.CanRestart), ModifierKeys.Control | ModifierKeys.Shift, Key.F5);
 			cmds.Add(new RelayCommand(a => debugger.Value.StopDebugging(), a => debugger.Value.CanStopDebugging), ModifierKeys.Shift, Key.F5);

@@ -138,6 +138,27 @@
   <data name="AttachToProcessCommand" xml:space="preserve">
     <value>Attach to _Process...</value>
   </data>
+  <data name="ReattachToProcessCommand" xml:space="preserve">
+    <value>Re_attach to Last Process</value>
+  </data>
+  <data name="ReattachToProcessFormatCommand" xml:space="preserve">
+    <value>Re_attach to {0} ({1})</value>
+  </data>
+  <data name="ReattachToProcessShortFormatCommand" xml:space="preserve">
+    <value>Re_attach to {0}</value>
+  </data>
+  <data name="Reattach_NoLast" xml:space="preserve">
+    <value>No previous attach session is remembered.</value>
+  </data>
+  <data name="Reattach_NotFound" xml:space="preserve">
+    <value>Could not find a running process matching '{0}'.</value>
+  </data>
+  <data name="Reattach_EnumerateFailed" xml:space="preserve">
+    <value>Failed to enumerate processes: {0}</value>
+  </data>
+  <data name="Reattach_AttachFailed" xml:space="preserve">
+    <value>Reattach failed: {0}</value>
+  </data>
   <data name="Attach_AttachToProcess" xml:space="preserve">
     <value>Attach to Process</value>
   </data>
@@ -521,6 +542,9 @@ Are you sure you want to expand it?</value>
   </data>
   <data name="ShortCutKeyCtrlShiftF9" xml:space="preserve">
     <value>Ctrl+Shift+F9</value>
+  </data>
+  <data name="ShortCutKeyCtrlShiftP" xml:space="preserve">
+    <value>Ctrl+Shift+P</value>
   </data>
   <data name="ShortCutKeyCtrl_DIGIT" xml:space="preserve">
     <value>Ctrl+{0}</value>
