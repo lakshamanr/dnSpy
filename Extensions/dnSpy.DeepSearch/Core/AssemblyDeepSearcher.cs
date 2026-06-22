@@ -165,11 +165,13 @@ namespace dnSpy.DeepSearch.Core {
 							continue;
 
 						if (instr.Operand is IMethodDefOrRef callee) {
-							try {
-								if (callee.FullName.Equals(target, StringComparison.Ordinal))
-									yield return new DeepSearchResult(ResultKind.Method, method.Name, typeName, typeNs, assemblyPath, assemblyName, method, instr.Offset, $"calls {callee.Name}");
-							}
-							catch { }
+							// FullName access can throw on malformed metadata; pull it out before yielding
+							// since yield return is not allowed inside a try/catch block (CS1626).
+							string? fullName = null;
+							string? calleeName = null;
+							try { fullName = callee.FullName; calleeName = callee.Name; } catch { }
+							if (fullName != null && fullName.Equals(target, StringComparison.Ordinal))
+								yield return new DeepSearchResult(ResultKind.Method, method.Name, typeName, typeNs, assemblyPath, assemblyName, method, instr.Offset, $"calls {calleeName}");
 						}
 					}
 				}

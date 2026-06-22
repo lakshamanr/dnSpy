@@ -28,8 +28,9 @@
     <Compile Include="..\..\Extensions\dnSpy.DeepSearch\Core\FolderScanner.cs"         Link="Core\FolderScanner.cs" />
   </ItemGroup>
 
-  <!-- System.IO.Compression.FileSystem required for ZipFile on net48 -->
+  <!-- ZipArchive is in System.IO.Compression; ZipFile is in System.IO.Compression.FileSystem (net48) -->
   <ItemGroup>
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
 

@@ -43,7 +43,8 @@ namespace dnSpy.DeepSearch.Tests {
 			};
 
 			engine.Start(targets, TypeOptions("a"));      // matches "Alpha"
-			var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+			var completed = await tcs.Task// net48 timeout shim
+; await Task.WhenAny(tcs.Task, Task.Delay(10_000)); var _ = tcs.Task;
 
 			Assert.True(completed);
 			Assert.Single(groups);
@@ -66,7 +67,8 @@ namespace dnSpy.DeepSearch.Tests {
 			};
 
 			engine.Start(targets, TypeOptions("Service"));
-			await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+			await tcs.Task// net48 timeout shim
+; await Task.WhenAny(tcs.Task, Task.Delay(10_000)); var _ = tcs.Task;
 
 			Assert.Equal(2, groups.Count);
 		}
@@ -91,7 +93,8 @@ namespace dnSpy.DeepSearch.Tests {
 			engine.Start(targets, TypeOptions("Type"));
 			engine.Cancel();
 
-			await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+			await tcs.Task// net48 timeout shim
+; await Task.WhenAny(tcs.Task, Task.Delay(10_000)); var _ = tcs.Task;
 			Assert.True(wasCancelled);
 		}
 
@@ -106,7 +109,8 @@ namespace dnSpy.DeepSearch.Tests {
 			engine.Start(targets, TypeOptions("Only"));
 			Assert.True(engine.IsRunning);
 
-			await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+			await tcs.Task// net48 timeout shim
+; await Task.WhenAny(tcs.Task, Task.Delay(10_000)); var _ = tcs.Task;
 			Assert.False(engine.IsRunning);
 		}
 
@@ -125,7 +129,8 @@ namespace dnSpy.DeepSearch.Tests {
 			engine.Start(targets, TypeOptions("A"));
 			engine.Start(targets, TypeOptions("A")); // second call must be silently ignored
 
-			await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+			await tcs.Task// net48 timeout shim
+; await Task.WhenAny(tcs.Task, Task.Delay(10_000)); var _ = tcs.Task;
 
 			// Give a moment to ensure no second completion fires
 			await Task.Delay(200);
@@ -148,7 +153,8 @@ namespace dnSpy.DeepSearch.Tests {
 			};
 			engine.Start(targets, TypeOptions("x")); // no matches, but status fires
 
-			await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+			await tcs.Task// net48 timeout shim
+; await Task.WhenAny(tcs.Task, Task.Delay(10_000)); var _ = tcs.Task;
 
 			// Engine fires "Collecting…" + one status per assembly scanned
 			var scanStatuses = statuses.FindAll(s => s.StartsWith("Scanning:"));

@@ -30,17 +30,21 @@ namespace dnSpy.DeepSearch.Core {
 			if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(pattern))
 				return false;
 
+			// After the null/empty guard above, input and pattern are non-null.
+			var nonNullInput   = input!;
+			var nonNullPattern = pattern!;
+
 			switch (mode) {
 			case MatchMode.Substring:
-				return input.IndexOf(pattern, caseSensitive
+				return nonNullInput.IndexOf(nonNullPattern, caseSensitive
 					? StringComparison.Ordinal
 					: StringComparison.OrdinalIgnoreCase) >= 0;
 
 			case MatchMode.Wildcard:
-				return IsWildcardMatch(input, pattern, caseSensitive);
+				return IsWildcardMatch(nonNullInput, nonNullPattern, caseSensitive);
 
 			case MatchMode.Regex:
-				return IsRegexMatch(input, pattern, caseSensitive);
+				return IsRegexMatch(nonNullInput, nonNullPattern, caseSensitive);
 
 			default:
 				return false;
