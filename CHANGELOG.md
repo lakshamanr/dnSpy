@@ -4,6 +4,17 @@ All notable changes to the dnSpy.DeepSearch extension are documented here.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **QuickWatch dialog** — right-click any local/auto/watch variable → "Quick Watch…" (also Shift+F9) opens a modal window showing the variable's current expression and value. The expression is editable; "Add to Watch" pushes the (possibly modified) expression into the Watch window.
+- Implemented via new `QuickWatchWindow.xaml` in `ToolWindows/QuickWatch/`, with `CanShowQuickWatch`/`ShowQuickWatch` added to `VariablesWindowOperations` and wired through `VariablesWindowOperationsImpl`.
+
+### Fixed
+- **Local variables showing hex by default** — `useHexadecimal` default changed from `true` to `false` in `DebuggerSettingsImpl`. Debugger windows (Locals, Autos, Watch) now display integer values in decimal. The "Hex Display" right-click toggle remains for users who prefer hex.
+
+---
+
 ## [0.4.0] — 2026-05-19
 
 ### Added

@@ -85,5 +85,7 @@ namespace dnSpy.Debugger.Evaluation.ViewModel {
 		public abstract bool ShowNamespaces { get; set; }
 		public abstract bool ShowIntrinsicTypeKeywords { get; set; }
 		public abstract bool ShowTokens { get; set; }
+		public abstract bool CanShowQuickWatch(IValueNodesVM vm);
+		public abstract void ShowQuickWatch(IValueNodesVM vm);
 	}
 }
