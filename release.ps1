@@ -69,6 +69,17 @@ Invoke-Build net-x64
 New-ReleaseZip "$PSScriptRoot\dnSpy\dnSpy\bin\Release\net5.0-windows\win-x64\publish\*" 'dnSpy-net-win64.zip'
 Invoke-Clean
 
+# ── MSI installers (x64 + x86) ────────────────────────────────────────────────
+$msiScript = Join-Path $PSScriptRoot 'Build\Installer\build-msi.ps1'
+if (Test-Path $msiScript) {
+    Write-Host "=== Building MSI installers ===" -ForegroundColor Cyan
+    & $msiScript -OutputDir $OutputDir
+    if ($LASTEXITCODE) { Write-Error "MSI build failed (exit $LASTEXITCODE)"; exit $LASTEXITCODE }
+}
+else {
+    Write-Host "Skipping MSI: $msiScript not found" -ForegroundColor Yellow
+}
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 Write-Host "=== Release $version ready ===" -ForegroundColor Green
 Get-Item "$OutputDir\*.zip" | ForEach-Object {
