@@ -74,7 +74,7 @@ namespace dnSpy.Debugger.DbgUI {
 			public override bool IsEnabled(IMenuItemContext context) => debugger.Value.CanAttachProgram;
 		}
 
-		[ExportMenuItem(OwnerGuid = MenuConstants.APP_MENU_DEBUG_GUID, Header = "res:ReattachToProcessCommand", Icon = DsImagesAttribute.Process, InputGestureText = "res:ShortCutKeyCtrlShiftP", Group = MenuConstants.GROUP_APP_MENU_DEBUG_START, Order = 35)]
+		[ExportMenuItem(OwnerGuid = MenuConstants.APP_MENU_DEBUG_GUID, Header = "res:ReattachToProcessCommand", Icon = DsImagesAttribute.Process, InputGestureText = "res:ShortCutKeyCtrlShiftAltP", Group = MenuConstants.GROUP_APP_MENU_DEBUG_START, Order = 35)]
 		sealed class ReattachDebugMainMenuCommand : DebugMainMenuCommand {
 			[ImportingConstructor]
 			public ReattachDebugMainMenuCommand(Lazy<Debugger> debugger)

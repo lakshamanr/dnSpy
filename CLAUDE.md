@@ -21,6 +21,24 @@ dotnet build Extensions/dnSpy.DeepSearch/dnSpy.DeepSearch.csproj -c Debug
 
 Target frameworks: `net5.0-windows` (release), `net48` (debug fallback). Both are listed in the csproj `<TargetFrameworks>`.
 
+### Submodules are required for debugging
+
+Seven git submodules must be populated, or the build silently produces a debugger that cannot
+debug .NET Core (CoreCLR) processes:
+
+```powershell
+git submodule update --init --recursive
+```
+
+The critical one is `Extensions/dnSpy.Debugger/netcorefiles`, which supplies `dbgshim.dll`
+(x86/x64). Without it `dnSpy.Debugger.DotNet.CorDebug` builds without errors but stages no
+native debug files, and the debugger fails at runtime with
+`Couldn't find dbgshim.dll: <path>` — no locals or values are shown.
+The `CheckDotNetDebugFilesPresent` target in
+`dnSpy.Debugger.DotNet.CorDebug.csproj` now turns this into a build error with an
+actionable message. `Libraries/ICSharpCode.TreeView` and
+`dnSpy/Roslyn/Roslyn.ExpressionCompiler` are also needed for the solution to build at all.
+
 ## DeepSearch extension layout
 
 ```

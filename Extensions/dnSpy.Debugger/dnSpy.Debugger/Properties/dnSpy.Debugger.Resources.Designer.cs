@@ -3343,11 +3343,11 @@ namespace dnSpy.Debugger.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Ctrl+Shift+P.
+        ///   Looks up a localized string similar to Ctrl+Shift+Alt+P.
         /// </summary>
-        public static string ShortCutKeyCtrlShiftP {
+        public static string ShortCutKeyCtrlShiftAltP {
             get {
-                return ResourceManager.GetString("ShortCutKeyCtrlShiftP", resourceCulture);
+                return ResourceManager.GetString("ShortCutKeyCtrlShiftAltP", resourceCulture);
             }
         }
         

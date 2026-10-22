@@ -543,8 +543,8 @@ Are you sure you want to expand it?</value>
   <data name="ShortCutKeyCtrlShiftF9" xml:space="preserve">
     <value>Ctrl+Shift+F9</value>
   </data>
-  <data name="ShortCutKeyCtrlShiftP" xml:space="preserve">
-    <value>Ctrl+Shift+P</value>
+  <data name="ShortCutKeyCtrlShiftAltP" xml:space="preserve">
+    <value>Ctrl+Shift+Alt+P</value>
   </data>
   <data name="ShortCutKeyCtrl_DIGIT" xml:space="preserve">
     <value>Ctrl+{0}</value>
