@@ -51,12 +51,23 @@
     <DotNetDebugFilesX64 Include="..\netcorefiles\x64\**" />
   </ItemGroup>
 
-  <Target Name="CopyDotNetDebugFiles_AfterBuild" AfterTargets="AfterBuild" Condition=" '$(IsDotNetFramework)' == 'true' ">
+  <!--
+    The netcorefiles submodule supplies dbgshim.dll, which is required to debug/attach to
+    CoreCLR processes. If the submodule isn't checked out, the copy targets below silently
+    copy nothing and the debugger fails at runtime with "Couldn't find dbgshim.dll".
+    Fail the build instead of shipping a broken debugger.
+  -->
+  <Target Name="CheckDotNetDebugFilesPresent" BeforeTargets="CopyDotNetDebugFiles_AfterBuild;CopyDotNetDebugFiles_Publish">
+    <Error Condition=" !Exists('..\netcorefiles\x64\dbgshim.dll') " Text="dbgshim.dll not found in ..\netcorefiles\x64. Run 'git submodule update --init --recursive' to restore the netcorefiles submodule." />
+    <Error Condition=" !Exists('..\netcorefiles\x86\dbgshim.dll') " Text="dbgshim.dll not found in ..\netcorefiles\x86. Run 'git submodule update --init --recursive' to restore the netcorefiles submodule." />
+  </Target>
+
+  <Target Name="CopyDotNetDebugFiles_AfterBuild" AfterTargets="AfterBuild">
     <Copy SourceFiles="@(DotNetDebugFilesX86)" DestinationFolder="$(TargetDir)debug\core\x86" />
     <Copy SourceFiles="@(DotNetDebugFilesX64)" DestinationFolder="$(TargetDir)debug\core\x64" />
   </Target>
 
-  <Target Name="CopyDotNetDebugFiles_Publish" AfterTargets="Publish" Condition=" '$(IsDotNetFramework)' == 'true' ">
+  <Target Name="CopyDotNetDebugFiles_Publish" AfterTargets="Publish">
     <Copy SourceFiles="@(DotNetDebugFilesX86)" DestinationFolder="$(PublishDir)debug\core\x86" />
     <Copy SourceFiles="@(DotNetDebugFilesX64)" DestinationFolder="$(PublishDir)debug\core\x64" />
   </Target>

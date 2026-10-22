@@ -117,7 +117,12 @@ namespace dnSpy.Debugger.DotNet.CorDebug.Utilities {
 			}
 #elif NET
 			var filename = FileUtilities.GetNativeDllFilename("dbgshim");
-			return Path.Combine(Path.GetDirectoryName(typeof(void).Assembly.Location)!, filename);
+			var basePath = Path.Combine(Contracts.App.AppDirectories.BinDirectory, "debug", "core");
+			switch (bitness) {
+			case 32:	return Path.Combine(basePath, "x86", filename);
+			case 64:	return Path.Combine(basePath, "x64", filename);
+			default:	throw new ArgumentOutOfRangeException(nameof(bitness));
+			}
 #else
 #error Unknown target framework
 #endif
