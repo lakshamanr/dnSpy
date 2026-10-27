@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using dnlib.DotNet;
 using dnSpy.Contracts.Debugger;
 using dnSpy.Contracts.Documents;
@@ -78,7 +79,7 @@ namespace dnSpy.DeepSearch.Services {
 
 			// ── Attached debug process ────────────────────────────────────────
 			if (options.Source == DllSource.AttachedProcess) {
-				foreach (var item in GetAttachedProcessModules(seen))
+				foreach (var item in GetAttachedProcessModulesSafe(seen))
 					yield return item;
 			}
 
@@ -115,6 +116,60 @@ namespace dnSpy.DeepSearch.Services {
 						yield return (mod, virtualPath, displayName);
 					}
 				}
+			}
+		}
+
+		IEnumerable<(ModuleDef module, string path, string name)> GetAttachedProcessModulesSafe(HashSet<string> seen) {
+			var dbgMgr = _dbgManager;
+			if (dbgMgr is null)
+				yield break;
+
+			var filenames = new List<string>();
+			Exception? snapshotError = null;
+			using (var completed = new ManualResetEventSlim(false)) {
+				try {
+					dbgMgr.Dispatcher.BeginInvoke(() => {
+					try {
+						foreach (var process in dbgMgr.Processes) {
+							foreach (var runtime in process.Runtimes) {
+								foreach (var module in runtime.Modules) {
+									if (!module.IsDynamic && !module.IsInMemory && !string.IsNullOrEmpty(module.Filename))
+										filenames.Add(module.Filename);
+								}
+							}
+						}
+					}
+					catch (Exception ex) {
+						snapshotError = ex;
+					}
+					finally {
+						completed.Set();
+					}
+				});
+				}
+				catch (Exception ex) {
+					snapshotError = ex;
+					completed.Set();
+				}
+				if (!completed.Wait(TimeSpan.FromSeconds(5))) {
+					Debug.WriteLine("[DeepSearch] Debugger dispatcher did not respond while collecting attached modules.");
+					yield break;
+				}
+			}
+			if (snapshotError is not null)
+				throw snapshotError;
+
+			foreach (var filename in filenames) {
+				if (!seen.Add(filename)) continue;
+				ModuleDef? mod = null;
+				try {
+					mod = ModuleDefMD.Load(filename, new ModuleCreationOptions { TryToLoadPdbFromDisk = false });
+				}
+				catch {
+					Debug.WriteLine($"[DeepSearch] Skipped process module: {filename}");
+					continue;
+				}
+				yield return (mod, filename, Path.GetFileName(filename));
 			}
 		}
 
