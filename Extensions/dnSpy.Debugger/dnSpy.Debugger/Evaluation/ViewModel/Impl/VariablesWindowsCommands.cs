@@ -111,6 +111,14 @@ namespace dnSpy.Debugger.Evaluation.ViewModel.Impl {
 		public override bool IsEnabled(VariablesWindowCtxMenuContext context) => context.Operations.CanAddWatch(context.VM);
 	}
 
+	[ExportMenuItem(Header = "Quick Watch...", Icon = DsImagesAttribute.Watch, InputGestureText = "Shift+F9", Group = MenuConstants.GROUP_CTX_DBG_VARIABLES_WINDOW_VALUES, Order = 25)]
+	sealed class QuickWatchVariablesWindowCtxMenuCommand : VariablesWindowCtxMenuCommand {
+		[ImportingConstructor]
+		QuickWatchVariablesWindowCtxMenuCommand(Lazy<VariablesWindowOperations> operations) : base(operations) { }
+		public override void Execute(VariablesWindowCtxMenuContext context) => context.Operations.ShowQuickWatch(context.VM);
+		public override bool IsEnabled(VariablesWindowCtxMenuContext context) => context.Operations.CanShowQuickWatch(context.VM);
+	}
+
 	// Order = 30: Add _Parallel Watch
 
 	[ExportMenuItem(Header = "res:DeleteWatchCommand", Icon = DsImagesAttribute.DeleteWatch, InputGestureText = "res:ShortCutKeyDelete", Group = MenuConstants.GROUP_CTX_DBG_VARIABLES_WINDOW_VALUES, Order = 40)]

@@ -44,7 +44,7 @@ namespace dnSpy.Debugger.Settings {
 					OnPropertyChanged(nameof(UseHexadecimal));
 			}
 		}
-		bool useHexadecimal = true;
+		bool useHexadecimal = false; // ponytail: was true; decimal is the sane default for most debugging
 
 		public override bool UseDigitSeparators {
 			get {

@@ -35,6 +35,7 @@ using dnSpy.Contracts.MVVM;
 using dnSpy.Contracts.TreeView;
 using dnSpy.Debugger.Evaluation.Watch;
 using dnSpy.Debugger.Properties;
+using dnSpy.Debugger.ToolWindows.QuickWatch;
 
 namespace dnSpy.Debugger.Evaluation.ViewModel.Impl {
 	[Export(typeof(VariablesWindowOperations))]
@@ -602,6 +603,26 @@ namespace dnSpy.Debugger.Evaluation.ViewModel.Impl {
 		public override bool ShowTokens {
 			get => dbgEvalFormatterSettings.ShowTokens;
 			set => dbgEvalFormatterSettings.ShowTokens = value;
+		}
+
+		public override bool CanShowQuickWatch(IValueNodesVM vm) =>
+			CanExecCommands(vm) && SelectedNode(vm) is ValueNodeImpl node && node.RawNode.CanEvaluateExpression;
+
+		public override void ShowQuickWatch(IValueNodesVM vm) {
+			if (!CanShowQuickWatch(vm))
+				return;
+			var node = SelectedNode(vm);
+			if (node is null)
+				return;
+
+			var output = new DbgStringBuilderTextWriter();
+			node.Context.Formatter.WriteValue(output, node, out _);
+			var valueText = output.ToString();
+			var expr = node.RawNode.CanEvaluateExpression ? node.RawNode.Expression : string.Empty;
+
+			var win = new QuickWatchWindow(expr, valueText, expression => watchExpressionsService.Value.AddExpressions(new[] { expression }));
+			win.Owner = Application.Current.MainWindow;
+			win.ShowDialog();
 		}
 	}
 }
