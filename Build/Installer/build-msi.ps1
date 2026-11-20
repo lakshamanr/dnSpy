@@ -1,21 +1,44 @@
 param(
     [string]$OutputDir = 'C:\dnSpy-msi',
     [string]$Configuration = 'Release',
-    [string]$WixDir = 'C:\Tools\WiX3'
+    [string]$WixDir = 'C:\Tools\WiX3',
+    [Alias('Arch')]
+    [string]$TargetArch = 'all'
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = $PSScriptRoot | Split-Path -Parent | Split-Path -Parent
+
+# Automatically locate WiX v3 tools if not found in $WixDir
+if (-not (Test-Path (Join-Path $WixDir 'candle.exe'))) {
+    $candleCmd = Get-Command candle.exe -ErrorAction SilentlyContinue
+    $candidates = @(
+        $env:WIX_DIR,
+        $env:WIX,
+        (if ($env:WIX) { Join-Path $env:WIX 'bin' } else { $null }),
+        (if ($candleCmd) { Split-Path $candleCmd.Source } else { $null }),
+        "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin",
+        "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin",
+        "${env:ProgramFiles}\WiX Toolset v3.11\bin",
+        'C:\Tools\WiX3'
+    ) | Where-Object { $_ -and (Test-Path (Join-Path $_ 'candle.exe')) }
+
+    if ($candidates.Count -gt 0) {
+        $WixDir = $candidates[0]
+    }
+}
+
 $candle = Join-Path $WixDir 'candle.exe'
 $light = Join-Path $WixDir 'light.exe'
 $heat = Join-Path $WixDir 'heat.exe'
 foreach ($tool in $candle, $light, $heat) {
     if (-not (Test-Path $tool)) {
-        Write-Error "$tool not found. Install the WiX Toolset v3 (LGPL) into '$WixDir' or pass -WixDir."
+        Write-Error "$tool not found. Install WiX Toolset v3 (e.g. 'choco install wixtoolset --version 3.11.2 -y') or pass -WixDir."
         exit 1
     }
 }
+Write-Host "WiX Dir : $WixDir"
 
 $propsFile = Join-Path $repoRoot 'DnSpyCommon.props'
 $version = ([xml](Get-Content $propsFile)).Project.PropertyGroup.DnSpyAssemblyInformationalVersion
@@ -30,19 +53,35 @@ Write-Host "Version : $version (MSI: $msiVersion)"
 # x64 and x86 are separate products with separate UpgradeCodes, so installing one
 # never removes or upgrades the other. The x64 package installs into Program Files
 # (x64) and the x86 package into Program Files (x86).
-$architectures = @(
+$allArchitectures = @(
     @{ Rid = 'win-x64'; Name = 'x64'; Arch = 'x64'; ProgramFilesId = 'ProgramFiles64Folder' },
     @{ Rid = 'win-x86'; Name = 'x86'; Arch = 'x86'; ProgramFilesId = 'ProgramFilesFolder' }
 )
 
+if ($TargetArch -eq 'x64' -or $TargetArch -eq 'win-x64') {
+    $architectures = @($allArchitectures[0])
+}
+elseif ($TargetArch -eq 'x86' -or $TargetArch -eq 'win-x86') {
+    $architectures = @($allArchitectures[1])
+}
+else {
+    $architectures = $allArchitectures
+}
+
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 
-foreach ($arch in $architectures) {
-    $rid = $arch.Rid
+foreach ($archInfo in $architectures) {
+    $rid = $archInfo.Rid
     $sourceDir = Join-Path $repoRoot "dnSpy\dnSpy\bin\$Configuration\net5.0-windows\$rid\publish"
     if (-not (Test-Path $sourceDir)) {
-        Write-Error "Publish output not found for $rid : $sourceDir"
-        exit 1
+        if ($TargetArch -ne 'all') {
+            Write-Error "Publish output not found for $rid : $sourceDir"
+            exit 1
+        }
+        else {
+            Write-Warning "Publish output not found for $rid : $sourceDir (skipping $rid MSI)"
+            continue
+        }
     }
     $binDir = Join-Path $sourceDir 'bin'
     if (-not (Test-Path $binDir)) {
@@ -56,7 +95,7 @@ foreach ($arch in $architectures) {
         }
     }
 
-    $isX64 = $arch.Name -eq 'x64'
+    $isX64 = $archInfo.Name -eq 'x64'
     # x64 and x86 are separate products: different UpgradeCode means installing
     # one never removes or upgrades the other.
     $upgradeGuid = if ($isX64) { '9E1B7A44-2C6D-4E1B-9F3A-5D8C7B2E4A11' } else { '3F7C2E19-8B4D-4A62-9C1F-7E5A3D9B6C28' }
@@ -73,7 +112,7 @@ foreach ($arch in $architectures) {
     # candle needs a directory (not a file) for -out when compiling multiple sources
     $wixObjDir = Join-Path $objDir 'obj'
     $wixobj = Join-Path $wixObjDir 'dnSpy.wixobj'
-    $msi = Join-Path $OutputDir "dnSpy-$($arch.Name)-$msiVersion.msi"
+    $msi = Join-Path $OutputDir "dnSpy-$($archInfo.Name)-$msiVersion.msi"
 
     Write-Host "=== Building MSI for $rid ===" -ForegroundColor Cyan
 
@@ -89,11 +128,11 @@ foreach ($arch in $architectures) {
     if ($LASTEXITCODE) { Write-Error "heat failed for $rid (exit $LASTEXITCODE)"; exit $LASTEXITCODE }
 
     New-Item -ItemType Directory -Path $wixObjDir -Force | Out-Null
-    & $candle -nologo -arch $arch.Arch `
+    & $candle -nologo -arch $archInfo.Arch `
         -dSourceDir="$sourceDir" `
         -dProductVersion="$msiVersion" `
         -dUpgradeCode="$upgradeGuid" `
-        -dProgramFilesId="$($arch.ProgramFilesId)" `
+        -dProgramFilesId="$($archInfo.ProgramFilesId)" `
         -dIconFile="$iconFile" `
         -out "$wixObjDir\" $wxs $harvestWxs
     if ($LASTEXITCODE) { Write-Error "candle failed for $rid (exit $LASTEXITCODE)"; exit $LASTEXITCODE }

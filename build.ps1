@@ -1,4 +1,4 @@
-param([string]$buildtfm = 'all', [switch]$NoMsbuild)
+﻿param([string]$buildtfm = 'all', [switch]$NoMsbuild)
 $ErrorActionPreference = 'Stop'
 
 # Anchor all relative paths to the repo root regardless of the caller's CWD
@@ -10,6 +10,24 @@ $net_tfm = 'net5.0-windows'
 $configuration = 'Release'
 $net_baseoutput = "dnSpy\dnSpy\bin\$configuration"
 $apphostpatcher_dir = "Build\AppHostPatcher"
+
+# Ensure MSBuild is on PATH if available via vswhere
+if (-not $NoMsbuild -and -not (Get-Command msbuild -ErrorAction SilentlyContinue)) {
+	$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+	if (Test-Path $vswhere) {
+		$msbuildExe = & $vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\Current\Bin\amd64\MSBuild.exe 2>$null | Select-Object -First 1
+		if (-not $msbuildExe) {
+			$msbuildExe = & $vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\MSBuild.exe 2>$null | Select-Object -First 1
+		}
+		if ($msbuildExe) {
+			$env:PATH = (Split-Path $msbuildExe -Parent) + ';' + $env:PATH
+		}
+	}
+	if (-not (Get-Command msbuild -ErrorAction SilentlyContinue)) {
+		Write-Warning "msbuild not found on PATH or via vswhere — falling back to 'dotnet' (NoMsbuild mode)."
+		$NoMsbuild = $true
+	}
+}
 
 #
 # dotnet build does not support COM references — we use MSBuild directly.

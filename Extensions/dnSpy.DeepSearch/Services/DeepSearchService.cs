@@ -59,7 +59,7 @@ namespace dnSpy.DeepSearch.Services {
 
 		public void CancelSearch() => _engine.Cancel();
 
-		IEnumerable<(ModuleDef module, string path, string name)> CollectTargets(DeepSearchOptions options) {
+		IEnumerable<(ModuleDef module, string path, string name, bool ownsModule)> CollectTargets(DeepSearchOptions options) {
 			var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
 			// ── Loaded assemblies ─────────────────────────────────────────────
@@ -73,7 +73,7 @@ namespace dnSpy.DeepSearch.Services {
 					var displayName = string.IsNullOrEmpty(path)
 						? (mod.Assembly?.Name.String ?? mod.Name.String ?? "<unknown>")
 						: Path.GetFileName(path);
-					yield return (mod, path, displayName);
+					yield return (mod, path, displayName, ownsModule: false);
 				}
 			}
 
@@ -85,41 +85,47 @@ namespace dnSpy.DeepSearch.Services {
 
 			// ── Folder (plain PE files) ───────────────────────────────────────
 			if (options.Source == DllSource.Folder || options.Source == DllSource.Both) {
-				if (!string.IsNullOrWhiteSpace(options.FolderPath) && Directory.Exists(options.FolderPath)) {
-					bool recurse = options.SearchSubfolders;
-					Debug.WriteLine($"[DeepSearch] Enumerating folder: {options.FolderPath}, recurse={recurse}");
-
-					foreach (var file in FolderScanner.SafeEnumeratePeFiles(options.FolderPath, recurse)) {
-						if (!seen.Add(file)) continue;
-						ModuleDef? mod = null;
-						try {
-							mod = ModuleDefMD.Load(file, new ModuleCreationOptions { TryToLoadPdbFromDisk = false });
-						}
-						catch {
-							Debug.WriteLine($"[DeepSearch] Skipped non-.NET file: {file}");
-							continue;
-						}
-						yield return (mod, file, Path.GetFileName(file));
+				if (!string.IsNullOrWhiteSpace(options.FolderPath)) {
+					if (!Directory.Exists(options.FolderPath)) {
+						Debug.WriteLine($"[DeepSearch] Folder does not exist or invalid: {options.FolderPath}");
+						StatusChanged?.Invoke(this, $"Folder not found: {options.FolderPath}");
 					}
+					else {
+						bool recurse = options.SearchSubfolders;
+						Debug.WriteLine($"[DeepSearch] Enumerating folder: {options.FolderPath}, recurse={recurse}");
 
-					// ── NuGet / zip archives ──────────────────────────────────
-					foreach (var (bytes, virtualPath, displayName) in FolderScanner.EnumerateZipPeEntries(options.FolderPath, recurse)) {
-						if (!seen.Add(virtualPath)) continue;
-						ModuleDef? mod = null;
-						try {
-							mod = ModuleDefMD.Load(bytes, new ModuleCreationOptions { TryToLoadPdbFromDisk = false });
+						foreach (var file in FolderScanner.SafeEnumeratePeFiles(options.FolderPath, recurse)) {
+							if (!seen.Add(file)) continue;
+							ModuleDef? mod = null;
+							try {
+								mod = ModuleDefMD.Load(file, new ModuleCreationOptions { TryToLoadPdbFromDisk = false });
+							}
+							catch {
+								Debug.WriteLine($"[DeepSearch] Skipped non-.NET file: {file}");
+								continue;
+							}
+							yield return (mod, file, Path.GetFileName(file), ownsModule: true);
 						}
-						catch {
-							Debug.WriteLine($"[DeepSearch] Skipped non-.NET zip entry: {virtualPath}");
-							continue;
+
+						// ── NuGet / zip archives ──────────────────────────────────
+						foreach (var (bytes, virtualPath, displayName) in FolderScanner.EnumerateZipPeEntries(options.FolderPath, recurse)) {
+							if (!seen.Add(virtualPath)) continue;
+							ModuleDef? mod = null;
+							try {
+								mod = ModuleDefMD.Load(bytes, new ModuleCreationOptions { TryToLoadPdbFromDisk = false });
+							}
+							catch {
+								Debug.WriteLine($"[DeepSearch] Skipped non-.NET zip entry: {virtualPath}");
+								continue;
+							}
+							yield return (mod, virtualPath, displayName, ownsModule: true);
 						}
-						yield return (mod, virtualPath, displayName);
 					}
 				}
 			}
 		}
 
-		IEnumerable<(ModuleDef module, string path, string name)> GetAttachedProcessModulesSafe(HashSet<string> seen) {
+		IEnumerable<(ModuleDef module, string path, string name, bool ownsModule)> GetAttachedProcessModulesSafe(HashSet<string> seen) {
 			var dbgMgr = _dbgManager;
 			if (dbgMgr is null)
 				yield break;
@@ -169,43 +175,8 @@ namespace dnSpy.DeepSearch.Services {
 					Debug.WriteLine($"[DeepSearch] Skipped process module: {filename}");
 					continue;
 				}
-				yield return (mod, filename, Path.GetFileName(filename));
+				yield return (mod, filename, Path.GetFileName(filename), ownsModule: true);
 			}
-		}
-
-		IEnumerable<(ModuleDef module, string path, string name)> GetAttachedProcessModules(HashSet<string> seen) {
-			var dbgMgr = _dbgManager;
-			if (dbgMgr is null) {
-				Debug.WriteLine("[DeepSearch] No debugger active — AttachedProcess source yielded nothing.");
-				yield break;
-			}
-
-			int skippedDynamic = 0;
-			foreach (var process in dbgMgr.Processes) {
-				foreach (var runtime in process.Runtimes) {
-					foreach (var module in runtime.Modules) {
-						if (module.IsDynamic || module.IsInMemory) {
-							skippedDynamic++;
-							continue;
-						}
-						var filename = module.Filename;
-						if (string.IsNullOrEmpty(filename)) continue;
-						if (!seen.Add(filename)) continue;
-						ModuleDef? mod = null;
-						try {
-							mod = ModuleDefMD.Load(filename, new ModuleCreationOptions { TryToLoadPdbFromDisk = false });
-						}
-						catch {
-							Debug.WriteLine($"[DeepSearch] Skipped process module: {filename}");
-							continue;
-						}
-						yield return (mod, filename, Path.GetFileName(filename));
-					}
-				}
-			}
-
-			if (skippedDynamic > 0)
-				Debug.WriteLine($"[DeepSearch] Skipped {skippedDynamic} dynamic/in-memory process module(s) — live metadata access not supported.");
 		}
 	}
 }

@@ -60,20 +60,30 @@ namespace dnSpy.DeepSearch.Core {
 		// Fires with the status line text (current DLL name + progress fraction)
 		public event EventHandler<string>? StatusChanged;
 
+		readonly object _lock = new object();
 		CancellationTokenSource? _cts;
 
-		public bool IsRunning => _cts != null;
+		public bool IsRunning { get { lock (_lock) return _cts != null; } }
 
 		/// <summary>
 		/// Starts a background search. No-ops if a search is already running.
 		/// </summary>
-		/// <param name="targets">Sequence of (module, filePath, displayName) tuples. Enumerated lazily on the background thread.</param>
+		/// <param name="targets">Sequence of (module, filePath, displayName) tuples. Module disposal is not performed.</param>
 		/// <param name="options">Search configuration.</param>
-		public void Start(IEnumerable<(ModuleDef module, string path, string name)> targets, DeepSearchOptions options) {
-			if (_cts != null)
-				return;
+		public void Start(IEnumerable<(ModuleDef module, string path, string name)> targets, DeepSearchOptions options) =>
+			Start(System.Linq.Enumerable.Select(targets, t => (t.module, t.path, t.name, false)), options);
 
-			_cts = new CancellationTokenSource();
+		/// <summary>
+		/// Starts a background search. No-ops if a search is already running.
+		/// </summary>
+		/// <param name="targets">Sequence of (module, filePath, displayName, ownsModule) tuples. Enumerated lazily on the background thread.</param>
+		/// <param name="options">Search configuration.</param>
+		public void Start(IEnumerable<(ModuleDef module, string path, string name, bool ownsModule)> targets, DeepSearchOptions options) {
+			lock (_lock) {
+				if (_cts != null)
+					return;
+				_cts = new CancellationTokenSource();
+			}
 			var token = _cts.Token;
 
 			// FIX: Enumerate targets (file I/O + ModuleDefMD.Load) on the background thread,
@@ -82,19 +92,19 @@ namespace dnSpy.DeepSearch.Core {
 				Debug.WriteLine($"[DeepSearch] Background thread started. Source={options.Source}, Folder={options.FolderPath}");
 				StatusChanged?.Invoke(this, "Collecting search targets…");
 
-				List<(ModuleDef module, string path, string name)> targetList;
+				List<(ModuleDef module, string path, string name, bool ownsModule)> targetList;
 				try {
-					targetList = new List<(ModuleDef module, string path, string name)>(targets);
+					targetList = new List<(ModuleDef module, string path, string name, bool ownsModule)>(targets);
 				}
 				catch (OperationCanceledException) {
 					Debug.WriteLine("[DeepSearch] Collection cancelled.");
-					_cts = null;
+					lock (_lock) { _cts?.Dispose(); _cts = null; }
 					SearchCompleted?.Invoke(this, new DeepSearchCompletedEventArgs(true, 0));
 					return;
 				}
 				catch (Exception ex) {
 					Debug.WriteLine($"[DeepSearch] Error collecting targets: {ex}");
-					_cts = null;
+					lock (_lock) { _cts?.Dispose(); _cts = null; }
 					StatusChanged?.Invoke(this, $"Error collecting search targets: {ex.Message}");
 					SearchCompleted?.Invoke(this, new DeepSearchCompletedEventArgs(false, 0));
 					return;
@@ -109,11 +119,14 @@ namespace dnSpy.DeepSearch.Core {
 		/// Cancels the running search. The next call to <see cref="Start"/> will begin fresh.
 		/// </summary>
 		public void Cancel() {
-			_cts?.Cancel();
-			_cts = null;
+			lock (_lock) {
+				_cts?.Cancel();
+				_cts?.Dispose();
+				_cts = null;
+			}
 		}
 
-		void RunSearch(List<(ModuleDef module, string path, string name)> targets, DeepSearchOptions options, CancellationToken token) {
+		void RunSearch(List<(ModuleDef module, string path, string name, bool ownsModule)> targets, DeepSearchOptions options, CancellationToken token) {
 			int totalResults = 0;
 			bool cancelled = false;
 
@@ -121,7 +134,7 @@ namespace dnSpy.DeepSearch.Core {
 				for (int i = 0; i < targets.Count; i++) {
 					token.ThrowIfCancellationRequested();
 
-					var (module, path, name) = targets[i];
+					var (module, path, name, ownsModule) = targets[i];
 					Debug.WriteLine($"[DeepSearch] Scanning [{i + 1}/{targets.Count}]: {name}");
 					StatusChanged?.Invoke(this, $"Scanning: {name}  ({i + 1} of {targets.Count})");
 
@@ -137,6 +150,10 @@ namespace dnSpy.DeepSearch.Core {
 						// Unreadable / obfuscated assembly — skip silently
 						Debug.WriteLine($"[DeepSearch] Skipping {name}: {ex.GetType().Name}: {ex.Message}");
 					}
+					finally {
+						if (ownsModule)
+							(module as IDisposable)?.Dispose();
+					}
 
 					if (results.Count > 0) {
 						totalResults += results.Count;
@@ -150,7 +167,7 @@ namespace dnSpy.DeepSearch.Core {
 				Debug.WriteLine("[DeepSearch] Search cancelled.");
 			}
 			finally {
-				_cts = null;
+				lock (_lock) { _cts?.Dispose(); _cts = null; }
 				Debug.WriteLine($"[DeepSearch] Search finished. Cancelled={cancelled}, Results={totalResults}");
 				SearchCompleted?.Invoke(this, new DeepSearchCompletedEventArgs(cancelled, totalResults));
 			}

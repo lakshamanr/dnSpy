@@ -4,6 +4,8 @@
              xmlns:mvvm="clr-namespace:dnSpy.Contracts.MVVM;assembly=dnSpy.Contracts.DnSpy">
 
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
         <!-- Base style for leaf result rows -->
         <Style x:Key="DeepSearchTreeItemStyle" TargetType="TreeViewItem">
             <Setter Property="Background"                 Value="Transparent"/>

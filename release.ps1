@@ -124,6 +124,9 @@ function Invoke-Clean {
     Write-Host ""
 }
 
+# ── MSI script path ─────────────────────────────────────────────────────────
+$msiScript = Join-Path $PSScriptRoot 'Build\Installer\build-msi.ps1'
+
 # ── .NET Framework ────────────────────────────────────────────────────────────
 Invoke-Build netframework
 New-ReleaseZip "$PSScriptRoot\dnSpy\dnSpy\bin\Release\net48" 'dnSpy-netframework.zip'
@@ -132,31 +135,30 @@ Invoke-Clean
 # ── .NET win-x86 ─────────────────────────────────────────────────────────────
 Invoke-Build net-x86
 New-ReleaseZip "$PSScriptRoot\dnSpy\dnSpy\bin\Release\net5.0-windows\win-x86\publish" 'dnSpy-net-win32.zip'
+if (Test-Path $msiScript) {
+    Write-Host "=== Building x86 MSI installer ===" -ForegroundColor Cyan
+    & $msiScript -OutputDir $OutputDir -Arch x86
+    if ($LASTEXITCODE) { Write-Error "x86 MSI build failed (exit $LASTEXITCODE)"; exit $LASTEXITCODE }
+}
 Invoke-Clean
 
 # ── .NET win-x64 ─────────────────────────────────────────────────────────────
 Invoke-Build net-x64
 New-ReleaseZip "$PSScriptRoot\dnSpy\dnSpy\bin\Release\net5.0-windows\win-x64\publish" 'dnSpy-net-win64.zip'
-Invoke-Clean
-
-# ── MSI installers (x64 + x86) ────────────────────────────────────────────────
-$msiScript = Join-Path $PSScriptRoot 'Build\Installer\build-msi.ps1'
 if (Test-Path $msiScript) {
-    Write-Host "=== Building MSI installers ===" -ForegroundColor Cyan
-    & $msiScript -OutputDir $OutputDir
-    if ($LASTEXITCODE) { Write-Error "MSI build failed (exit $LASTEXITCODE)"; exit $LASTEXITCODE }
+    Write-Host "=== Building x64 MSI installer ===" -ForegroundColor Cyan
+    & $msiScript -OutputDir $OutputDir -Arch x64
+    if ($LASTEXITCODE) { Write-Error "x64 MSI build failed (exit $LASTEXITCODE)"; exit $LASTEXITCODE }
 }
-else {
-    Write-Host "Skipping MSI: $msiScript not found" -ForegroundColor Yellow
-}
+Invoke-Clean
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 $elapsed = [math]::Round(((Get-Date) - $startTime).TotalMinutes, 1)
 Write-Host ""
 Write-Host "=== Release $version ready  ($elapsed min) ===" -ForegroundColor Green
-Get-Item "$OutputDir\*.zip" | ForEach-Object {
+Get-ChildItem "$OutputDir\*.zip", "$OutputDir\*.msi" -ErrorAction SilentlyContinue | ForEach-Object {
     $mb = [math]::Round($_.Length / 1MB, 1)
-    Write-Host "  $($_.Name)  $mb MB"
+    Write-Host ("  {0,-40} {1,6:N1} MB" -f $_.Name, $mb)
 }
 Write-Host "`nArtifacts saved to: $OutputDir" -ForegroundColor Green
 exit 0

@@ -185,8 +185,7 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 				if (_namespaceFilter != value) {
 					_namespaceFilter = value;
 					OnPropertyChanged(nameof(NamespaceFilter));
-					OnPropertyChanged(nameof(FilteredResultGroups));
-					OnPropertyChanged(nameof(FilteredAssemblyCount));
+					InvalidateFilteredResults();
 				}
 			}
 		}
@@ -194,9 +193,27 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 		// ── Results ──────────────────────────────────────────────────────────
 		public ObservableCollection<DeepSearchResultGroupVM> ResultGroups { get; } = new();
 
+		List<DeepSearchResultGroupVM>? _cachedFilteredGroups;
+		int _filteredAssemblyCount;
+
+		void InvalidateFilteredResults() {
+			_cachedFilteredGroups = null;
+			OnPropertyChanged(nameof(FilteredResultGroups));
+			OnPropertyChanged(nameof(FilteredAssemblyCount));
+		}
+
 		/// <summary>Namespace-filtered and diff-filtered view of ResultGroups, bound by the TreeView.</summary>
 		public IEnumerable<DeepSearchResultGroupVM> FilteredResultGroups {
 			get {
+				if (_cachedFilteredGroups != null)
+					return _cachedFilteredGroups;
+
+				if (string.IsNullOrWhiteSpace(_namespaceFilter) && (!_isDiffMode || _snapshotKeys == null)) {
+					_cachedFilteredGroups = ResultGroups.ToList();
+					_filteredAssemblyCount = _cachedFilteredGroups.Count;
+					return _cachedFilteredGroups;
+				}
+
 				IEnumerable<DeepSearchResultGroupVM> source = ResultGroups;
 
 				// Apply namespace filter
@@ -227,10 +244,14 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 						foreach (var r in newResults) dg.AddResult(r);
 						diffFiltered.Add(dg);
 					}
-					return diffFiltered;
+					_cachedFilteredGroups = diffFiltered;
+					_filteredAssemblyCount = _cachedFilteredGroups.Count;
+					return _cachedFilteredGroups;
 				}
 
-				return source;
+				_cachedFilteredGroups = source.ToList();
+				_filteredAssemblyCount = _cachedFilteredGroups.Count;
+				return _cachedFilteredGroups;
 			}
 		}
 
@@ -265,7 +286,13 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 			set { if (_assemblyCount != value) { _assemblyCount = value; OnPropertyChanged(nameof(AssemblyCount)); OnPropertyChanged(nameof(ResultSummary)); } }
 		}
 
-		public int FilteredAssemblyCount => FilteredResultGroups.Count();
+		public int FilteredAssemblyCount {
+			get {
+				if (_cachedFilteredGroups == null)
+					_ = FilteredResultGroups;
+				return _filteredAssemblyCount;
+			}
+		}
 
 		int _progressValue;
 		public int ProgressValue {
@@ -320,8 +347,7 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 				if (_isDiffMode != value) {
 					_isDiffMode = value;
 					OnPropertyChanged(nameof(IsDiffMode));
-					OnPropertyChanged(nameof(FilteredResultGroups));
-					OnPropertyChanged(nameof(FilteredAssemblyCount));
+					InvalidateFilteredResults();
 				}
 			}
 		}
@@ -380,6 +406,7 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 			_settings.SaveOptions(BuildOptionsDto());
 
 			ResultGroups.Clear();
+			InvalidateFilteredResults();
 			TotalResults  = 0;
 			AssemblyCount = 0;
 			ProgressValue = 0;
@@ -395,6 +422,7 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 			if (result?.TokenProvider is not MethodDef method) return;
 
 			ResultGroups.Clear();
+			InvalidateFilteredResults();
 			TotalResults  = 0;
 			AssemblyCount = 0;
 			ProgressValue = 0;
@@ -488,7 +516,7 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 		// ── Event handlers ────────────────────────────────────────────────────
 
 		void OnGroupFound(object? sender, DeepSearchGroupFoundEventArgs e) {
-			Application.Current.Dispatcher.Invoke(() => {
+			Application.Current.Dispatcher.BeginInvoke(new Action(() => {
 				var groupVM = new DeepSearchResultGroupVM(e.Group.AssemblyName, e.Group.AssemblyPath);
 				foreach (var result in e.Group.Results) {
 					groupVM.AddResult(new DeepSearchResultVM(result));
@@ -498,20 +526,20 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 				AssemblyCount = ResultGroups.Count;
 				ProgressValue = e.CurrentDllIndex;
 				ProgressMax   = e.TotalDllCount;
-				OnPropertyChanged(nameof(FilteredResultGroups));
-				OnPropertyChanged(nameof(FilteredAssemblyCount));
+				InvalidateFilteredResults();
 				StatusText = $"Scanning: {e.CurrentDllPath}  ({e.CurrentDllIndex} of {e.TotalDllCount})  —  {TotalResults} result(s)";
-			});
+			}));
 		}
 
 		void OnSearchCompleted(object? sender, DeepSearchCompletedEventArgs e) {
-			Application.Current.Dispatcher.Invoke(() => {
+			Application.Current.Dispatcher.BeginInvoke(new Action(() => {
 				IsSearching   = false;
+				TotalResults  = e.TotalResults;
 				ProgressValue = ProgressMax;
 				StatusText    = e.WasCancelled
 					? $"Search cancelled — {TotalResults} result(s) in {AssemblyCount} assembl{(AssemblyCount == 1 ? "y" : "ies")}"
 					: $"Search complete — {TotalResults} result(s) in {AssemblyCount} assembl{(AssemblyCount == 1 ? "y" : "ies")}";
-			});
+			}));
 		}
 
 		void OnStatusChanged(object? sender, string status) =>
@@ -566,7 +594,7 @@ namespace dnSpy.DeepSearch.UI.ViewModels {
 			}
 			_snapshotKeys = new HashSet<string>(
 				ResultGroups.SelectMany(g => g.Results).Select(r => r.Result.DiffKey));
-			OnPropertyChanged(nameof(FilteredResultGroups));
+			InvalidateFilteredResults();
 			StatusText = $"Snapshot saved — {_snapshotKeys.Count} result(s). Run a new search then toggle Diff.";
 		}
 

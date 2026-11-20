@@ -42,7 +42,7 @@ namespace dnSpy.DeepSearch.Tests {
 				(MakeModule("Gamma"), "c.dll", "c"),
 			};
 
-			engine.Start(targets, TypeOptions("a"));      // matches "Alpha"
+			engine.Start(targets, TypeOptions("Alpha"));      // matches "Alpha"
 			var completed = await tcs.Task// net48 timeout shim
 ; await Task.WhenAny(tcs.Task, Task.Delay(10_000)); var _ = tcs.Task;
 
@@ -105,9 +105,15 @@ namespace dnSpy.DeepSearch.Tests {
 			var tcs = new TaskCompletionSource<bool>();
 			engine.SearchCompleted += (_, _) => tcs.TrySetResult(true);
 
-			var targets = new[] { (MakeModule("Only"), "o.dll", "o") };
-			engine.Start(targets, TypeOptions("Only"));
+			using var gate = new ManualResetEventSlim(false);
+			IEnumerable<(ModuleDef, string, string)> GetTargets() {
+				gate.Wait(5000);
+				yield return (MakeModule("Only"), "o.dll", "o");
+			}
+
+			engine.Start(GetTargets(), TypeOptions("Only"));
 			Assert.True(engine.IsRunning);
+			gate.Set();
 
 			await tcs.Task// net48 timeout shim
 ; await Task.WhenAny(tcs.Task, Task.Delay(10_000)); var _ = tcs.Task;

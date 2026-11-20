@@ -18,10 +18,13 @@
 */
 
 using System;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
 namespace dnSpy.DeepSearch.Core {
 	public static class MatchHelper {
+		static readonly ConcurrentDictionary<(string pattern, bool caseSensitive), Regex?> _regexCache = new();
+
 		/// <summary>
 		/// Returns true if <paramref name="input"/> matches <paramref name="pattern"/> according to
 		/// <paramref name="mode"/>. Returns false when either argument is null/empty.
@@ -60,19 +63,33 @@ namespace dnSpy.DeepSearch.Core {
 		}
 
 		static bool IsRegexMatch(string input, string pattern, bool caseSensitive) {
-			try {
-				var options = RegexOptions.Singleline;
-				if (!caseSensitive)
-					options |= RegexOptions.IgnoreCase;
-				return Regex.IsMatch(input, pattern, options, TimeSpan.FromSeconds(1));
-			}
-			catch (ArgumentException) {
-				// Invalid regex — treat as no match rather than crashing
+			var regex = GetOrCreateRegex(pattern, caseSensitive);
+			if (regex is null)
 				return false;
+
+			try {
+				return regex.IsMatch(input);
 			}
 			catch (RegexMatchTimeoutException) {
 				return false;
 			}
+		}
+
+		static Regex? GetOrCreateRegex(string pattern, bool caseSensitive) {
+			if (_regexCache.Count > 256)
+				_regexCache.Clear();
+
+			return _regexCache.GetOrAdd((pattern, caseSensitive), key => {
+				try {
+					var options = RegexOptions.Singleline;
+					if (!key.caseSensitive)
+						options |= RegexOptions.IgnoreCase;
+					return new Regex(key.pattern, options, TimeSpan.FromSeconds(1));
+				}
+				catch (ArgumentException) {
+					return null;
+				}
+			});
 		}
 	}
 }

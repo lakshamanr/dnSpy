@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.Linq;
 using dnSpy.Contracts.Settings;
 
 namespace dnSpy.DeepSearch.Services {
@@ -75,7 +76,7 @@ namespace dnSpy.DeepSearch.Services {
 		}
 
 		public void SaveHistory(IEnumerable<string> history) {
-			foreach (var sect in _root.SectionsWithName(SECTION_ITEM))
+			foreach (var sect in _root.SectionsWithName(SECTION_ITEM).ToList())
 				_root.RemoveSection(sect);
 			foreach (var term in history) {
 				var sect = _root.CreateSection(SECTION_ITEM);
@@ -105,7 +106,7 @@ namespace dnSpy.DeepSearch.Services {
 		}
 
 		public void SaveOptions(DeepSearchOptionsDto dto) {
-			foreach (var sect in _root.SectionsWithName(SECTION_OPTIONS))
+			foreach (var sect in _root.SectionsWithName(SECTION_OPTIONS).ToList())
 				_root.RemoveSection(sect);
 
 			var s = _root.CreateSection(SECTION_OPTIONS);
