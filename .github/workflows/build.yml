@@ -113,13 +113,14 @@ jobs:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       # Automatic rolling release on every push to master: always provides the latest MSIs and zips
-      - name: Update latest pre-release on master push
+      - name: Update latest release on master push
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master'
         with:
           tag_name: continuous
           name: Continuous Build (latest master)
-          prerelease: true
+          prerelease: false
+          make_latest: true
           files: |
             C:\builtfiles\dnSpy-netframework.zip
             C:\builtfiles\dnSpy-net-win32.zip
