@@ -13,19 +13,27 @@ $repoRoot = $PSScriptRoot | Split-Path -Parent | Split-Path -Parent
 # Automatically locate WiX v3 tools if not found in $WixDir
 if (-not (Test-Path (Join-Path $WixDir 'candle.exe'))) {
     $candleCmd = Get-Command candle.exe -ErrorAction SilentlyContinue
-    $candidates = @(
-        $env:WIX_DIR,
-        $env:WIX,
-        (if ($env:WIX) { Join-Path $env:WIX 'bin' } else { $null }),
-        (if ($candleCmd) { Split-Path $candleCmd.Source } else { $null }),
-        "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin",
-        "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin",
-        "${env:ProgramFiles}\WiX Toolset v3.11\bin",
-        'C:\Tools\WiX3'
-    ) | Where-Object { $_ -and (Test-Path (Join-Path $_ 'candle.exe')) }
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    if ($env:WIX_DIR) { $candidates.Add($env:WIX_DIR) }
+    if ($env:WIX) {
+        $candidates.Add($env:WIX)
+        $candidates.Add((Join-Path $env:WIX 'bin'))
+    }
+    if ($candleCmd) { $candidates.Add((Split-Path $candleCmd.Source)) }
+    if (${env:ProgramFiles(x86)}) {
+        $candidates.Add("${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin")
+        $candidates.Add("${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin")
+    }
+    if ($env:ProgramFiles) {
+        $candidates.Add("${env:ProgramFiles}\WiX Toolset v3.11\bin")
+    }
+    $candidates.Add('C:\Tools\WiX3')
 
-    if ($candidates.Count -gt 0) {
-        $WixDir = $candidates[0]
+    foreach ($dir in $candidates) {
+        if ($dir -and (Test-Path (Join-Path $dir 'candle.exe'))) {
+            $WixDir = $dir
+            break
+        }
     }
 }
 
