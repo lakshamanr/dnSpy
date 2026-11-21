@@ -48,7 +48,7 @@ namespace dnSpy.Debugger.DotNet.Code.TextEditor {
 			var methodDebugService = documentViewer.GetMethodDebugService();
 			if (methodDebugService is null)
 				return null;
-			var methodStatements = methodDebugService.FindByTextPosition(position.Position, FindByTextPositionOptions.None);
+			var methodStatements = methodDebugService.FindByTextPosition(position.Position, FindByTextPositionOptions.SameLine);
 			if (methodStatements.Count == 0)
 				return null;
 			var textSpan = methodStatements[0].Statement.TextSpan;

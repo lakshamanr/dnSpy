@@ -113,7 +113,7 @@ namespace dnSpy.Debugger.Breakpoints.Code.TextEditor {
 				span = new SnapshotSpan(newStart, newEnd);
 			}
 			else
-				span = new SnapshotSpan(pos.Position, new SnapshotPoint(pos.Position.Snapshot, pos.Position.Snapshot.Length));
+				span = pos.Position.GetContainingLine().Extent;
 			// This one has higher priority since it already exists (eg. could be a stack frame BP location)
 			UpdateResult(allLocations, textView, ref res, breakpointMarker.Value.GetLocations(textView, span), useIfSameSpan: true);
 			return new LocationsResult(dbgManager, res, allLocations);
@@ -131,7 +131,7 @@ namespace dnSpy.Debugger.Breakpoints.Code.TextEditor {
 			if (res is null)
 				res = result;
 			else if (useIfSameSpan) {
-				if (result.Value.Span.Start == res.Value.Span.Start)
+				if (result.Value.Span == res.Value.Span)
 					res = result;
 			}
 			else if (result.Value.Span.Start < res.Value.Span.Start)

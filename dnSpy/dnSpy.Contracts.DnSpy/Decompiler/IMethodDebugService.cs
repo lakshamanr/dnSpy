@@ -99,6 +99,11 @@ namespace dnSpy.Contracts.Decompiler {
 		/// If it's not set, the statement inside the nested method / delegate is returned.
 		/// </summary>
 		OuterMostStatement		= 0x00000002,
+
+		/// <summary>
+		/// Only consider statements intersecting the selected line.
+		/// </summary>
+		SameLine				= 0x00000004,
 	}
 
 	/// <summary>

@@ -105,6 +105,23 @@ namespace dnSpy.Decompiler {
 				textPosition = outermostSpan.Start;
 			var line = snapshot.GetLineFromPosition(textPosition);
 
+			if ((options & FindByTextPositionOptions.SameLine) != 0) {
+				int lineStart = line.Start.Position, lineEnd = line.End.Position;
+				int firstToken = lineStart;
+				while (firstToken < lineEnd && char.IsWhiteSpace(snapshot[firstToken]))
+					firstToken++;
+				if (firstToken == lineEnd)
+					return Array.Empty<MethodSourceStatement>();
+				int lastToken = lineEnd - 1;
+				while (char.IsWhiteSpace(snapshot[lastToken]))
+					lastToken--;
+				int position = Math.Min(lastToken, Math.Max(firstToken, textPosition));
+				var statements = FindOnLine(lineStart, lineEnd, position);
+				if ((options & FindByTextPositionOptions.SameMethod) == 0 || IsSameMethod(statements, textPosition))
+					return statements;
+				return Array.Empty<MethodSourceStatement>();
+			}
+
 			var scopeSpan = GetScopeSpan(textPosition);
 			var lineStartPos = Math.Max(line.Start.Position, scopeSpan.Start);
 			var lineEndPos = Math.Min(line.End.Position, scopeSpan.End);
@@ -132,6 +149,33 @@ namespace dnSpy.Decompiler {
 					return methodStatements;
 			}
 			return Array.Empty<MethodSourceStatement>();
+		}
+
+		List<MethodSourceStatement> FindOnLine(int lineStart, int lineEnd, int position) {
+			var result = new List<MethodSourceStatement>();
+			var bestRank = (int.MaxValue, int.MaxValue, int.MaxValue);
+			foreach (var info in dict.Values) {
+				foreach (var statement in info.Statements) {
+					var span = statement.TextSpan;
+					if (span.Length == 0 || span.Start >= lineEnd || span.End <= lineStart)
+						continue;
+
+					// A containing span wins over an adjacent one, including at a shared boundary.
+					int distance = span.Contains(position) ? -1 : GetDist(span, position);
+					var rank = (distance, span.Length, span.Start);
+					int comparison = rank.CompareTo(bestRank);
+					if (comparison > 0)
+						continue;
+					if (comparison < 0) {
+						result.Clear();
+						bestRank = rank;
+					}
+					else if (result.Count != 0 && result[result.Count - 1].Method == info.Method)
+						continue; // Statements are ordered by IL offset.
+					result.Add(new MethodSourceStatement(info.Method, statement));
+				}
+			}
+			return result;
 		}
 
 		TextSpan GetScopeSpan(int textPosition) {
