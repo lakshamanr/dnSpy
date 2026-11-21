@@ -333,6 +333,42 @@ namespace dnSpy.Debugger.Evaluation.ViewModel.Impl {
 		public override bool IsChecked(VariablesWindowCtxMenuContext context) => context.Operations.ShowOnlyPublicMembers;
 	}
 
+	[ExportMenuItem(Header = "res:DbgSettings_HideCompilerGeneratedMembers", Group = MenuConstants.GROUP_CTX_DBG_VARIABLES_WINDOW_OPTS, Order = 1)]
+	sealed class HideCompilerGeneratedMembersVariablesWindowCtxMenuCommand : VariablesWindowCtxMenuCommand {
+		[ImportingConstructor]
+		HideCompilerGeneratedMembersVariablesWindowCtxMenuCommand(Lazy<VariablesWindowOperations> operations) : base(operations) { }
+		public override void Execute(VariablesWindowCtxMenuContext context) => context.Operations.HideCompilerGeneratedMembers = !context.Operations.HideCompilerGeneratedMembers;
+		public override bool IsEnabled(VariablesWindowCtxMenuContext context) => true;
+		public override bool IsChecked(VariablesWindowCtxMenuContext context) => context.Operations.HideCompilerGeneratedMembers;
+	}
+
+	[ExportMenuItem(Header = "res:DbgSettings_ShowCompilerGeneratedVariables", Group = MenuConstants.GROUP_CTX_DBG_VARIABLES_WINDOW_OPTS, Order = 2)]
+	sealed class ShowCompilerGeneratedVariablesVariablesWindowCtxMenuCommand : VariablesWindowCtxMenuCommand {
+		[ImportingConstructor]
+		ShowCompilerGeneratedVariablesVariablesWindowCtxMenuCommand(Lazy<VariablesWindowOperations> operations) : base(operations) { }
+		public override void Execute(VariablesWindowCtxMenuContext context) => context.Operations.ShowCompilerGeneratedVariables = !context.Operations.ShowCompilerGeneratedVariables;
+		public override bool IsEnabled(VariablesWindowCtxMenuContext context) => true;
+		public override bool IsChecked(VariablesWindowCtxMenuContext context) => context.Operations.ShowCompilerGeneratedVariables;
+	}
+
+	[ExportMenuItem(Header = "res:DbgSettings_ShowRawStructureOfObjects", Group = MenuConstants.GROUP_CTX_DBG_VARIABLES_WINDOW_OPTS, Order = 3)]
+	sealed class ShowRawStructureOfObjectsVariablesWindowCtxMenuCommand : VariablesWindowCtxMenuCommand {
+		[ImportingConstructor]
+		ShowRawStructureOfObjectsVariablesWindowCtxMenuCommand(Lazy<VariablesWindowOperations> operations) : base(operations) { }
+		public override void Execute(VariablesWindowCtxMenuContext context) => context.Operations.ShowRawStructureOfObjects = !context.Operations.ShowRawStructureOfObjects;
+		public override bool IsEnabled(VariablesWindowCtxMenuContext context) => true;
+		public override bool IsChecked(VariablesWindowCtxMenuContext context) => context.Operations.ShowRawStructureOfObjects;
+	}
+
+	[ExportMenuItem(Header = "res:DbgSettings_StepOverPropertiesAndOperators", Group = MenuConstants.GROUP_CTX_DBG_VARIABLES_WINDOW_OPTS, Order = 4)]
+	sealed class StepOverPropertiesAndOperatorsVariablesWindowCtxMenuCommand : VariablesWindowCtxMenuCommand {
+		[ImportingConstructor]
+		StepOverPropertiesAndOperatorsVariablesWindowCtxMenuCommand(Lazy<VariablesWindowOperations> operations) : base(operations) { }
+		public override void Execute(VariablesWindowCtxMenuContext context) => context.Operations.StepOverPropertiesAndOperators = !context.Operations.StepOverPropertiesAndOperators;
+		public override bool IsEnabled(VariablesWindowCtxMenuContext context) => true;
+		public override bool IsChecked(VariablesWindowCtxMenuContext context) => context.Operations.StepOverPropertiesAndOperators;
+	}
+
 	[ExportMenuItem(Header = "res:ShowNamespacesCommand", Group = MenuConstants.GROUP_CTX_DBG_VARIABLES_WINDOW_OPTS, Order = 10)]
 	sealed class ShowNamespacesVariablesWindowCtxMenuCommand : VariablesWindowCtxMenuCommand {
 		[ImportingConstructor]

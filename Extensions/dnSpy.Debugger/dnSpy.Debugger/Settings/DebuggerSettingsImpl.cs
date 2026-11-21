@@ -350,7 +350,7 @@ namespace dnSpy.Debugger.Settings {
 					OnPropertyChanged(nameof(ShowCompilerGeneratedVariables));
 			}
 		}
-		bool showCompilerGeneratedVariables = false;
+		bool showCompilerGeneratedVariables = true; // ponytail: was false; true ensures compiler-generated local variables in async methods and closures are visible in Locals
 
 		public override bool ShowDecompilerGeneratedVariables {
 			get {
@@ -384,7 +384,7 @@ namespace dnSpy.Debugger.Settings {
 					OnPropertyChanged(nameof(HideCompilerGeneratedMembers));
 			}
 		}
-		bool hideCompilerGeneratedMembers = true;
+		bool hideCompilerGeneratedMembers = false; // ponytail: was true; false ensures auto-property backing fields, closure fields, etc. are visible in Locals
 
 		public override bool RespectHideMemberAttributes {
 			get {
@@ -588,7 +588,7 @@ namespace dnSpy.Debugger.Settings {
 					OnPropertyChanged(nameof(StepOverPropertiesAndOperators));
 			}
 		}
-		bool stepOverPropertiesAndOperators = true;
+		bool stepOverPropertiesAndOperators = false; // ponytail: was true; false ensures Step Into (F11) enters properties and operators instead of skipping past them
 
 		public override bool IgnoreUnhandledExceptions {
 			get {

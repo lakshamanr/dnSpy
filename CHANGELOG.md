@@ -9,9 +9,13 @@ All notable changes to the dnSpy.DeepSearch extension are documented here.
 ### Added
 - **QuickWatch dialog** — right-click any local/auto/watch variable → "Quick Watch…" (also Shift+F9) opens a modal window showing the variable's current expression and value. The expression is editable; "Add to Watch" pushes the (possibly modified) expression into the Watch window.
 - Implemented via new `QuickWatchWindow.xaml` in `ToolWindows/QuickWatch/`, with `CanShowQuickWatch`/`ShowQuickWatch` added to `VariablesWindowOperations` and wired through `VariablesWindowOperationsImpl`.
+- **Variables context menu options** — added right-click context menu toggles for "Hide Compiler Generated Members", "Show Compiler Generated Variables", "Show Raw Structure of Objects", and "Step Over Properties and Operators" in Locals, Autos, and Watch windows.
+- **Debug main menu toggle** — added "Step Over Properties and Operators" toggle in the main Debug menu under Step Out.
 
 ### Fixed
 - **Local variables showing hex by default** — `useHexadecimal` default changed from `true` to `false` in `DebuggerSettingsImpl`. Debugger windows (Locals, Autos, Watch) now display integer values in decimal. The "Hex Display" right-click toggle remains for users who prefer hex.
+- **Missing field values in Locals** — changed `hideCompilerGeneratedMembers` default from `true` to `false` and `showCompilerGeneratedVariables` default from `false` to `true` in `DebuggerSettingsImpl`. Auto-property backing fields, closure fields, and compiler-generated locals in async state machines are now visible by default in Locals and Watch.
+- **Unexpected stepping (F10/F11)** — changed `stepOverPropertiesAndOperators` default from `true` to `false` in `DebuggerSettingsImpl`. Step Into (F11) now directly steps into property accessors and overloaded operators instead of stepping out and jumping past them.
 
 ---
 

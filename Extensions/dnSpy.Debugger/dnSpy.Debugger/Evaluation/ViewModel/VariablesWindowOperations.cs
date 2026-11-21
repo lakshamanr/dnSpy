@@ -82,6 +82,10 @@ namespace dnSpy.Debugger.Evaluation.ViewModel {
 		public abstract void ToggleUseDigitSeparators();
 		public abstract bool UseDigitSeparators { get; set; }
 		public abstract bool ShowOnlyPublicMembers { get; set; }
+		public abstract bool HideCompilerGeneratedMembers { get; set; }
+		public abstract bool ShowCompilerGeneratedVariables { get; set; }
+		public abstract bool ShowRawStructureOfObjects { get; set; }
+		public abstract bool StepOverPropertiesAndOperators { get; set; }
 		public abstract bool ShowNamespaces { get; set; }
 		public abstract bool ShowIntrinsicTypeKeywords { get; set; }
 		public abstract bool ShowTokens { get; set; }

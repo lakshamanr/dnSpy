@@ -243,6 +243,21 @@ namespace dnSpy.Debugger.DbgUI {
 			public override bool IsEnabled(IMenuItemContext context) => debugger.Value.CanStepOut;
 		}
 
+		[ExportMenuItem(OwnerGuid = MenuConstants.APP_MENU_DEBUG_GUID, Header = "res:DbgSettings_StepOverPropertiesAndOperators", Group = MenuConstants.GROUP_APP_MENU_DEBUG_STEP, Order = 30)]
+		sealed class StepOverPropertiesAndOperatorsDebugMainMenuCommand : MenuItemBase {
+			readonly DebuggerSettings debuggerSettings;
+
+			[ImportingConstructor]
+			public StepOverPropertiesAndOperatorsDebugMainMenuCommand(DebuggerSettings debuggerSettings) =>
+				this.debuggerSettings = debuggerSettings;
+
+			public override void Execute(IMenuItemContext context) =>
+				debuggerSettings.StepOverPropertiesAndOperators = !debuggerSettings.StepOverPropertiesAndOperators;
+
+			public override bool IsChecked(IMenuItemContext context) =>
+				debuggerSettings.StepOverPropertiesAndOperators;
+		}
+
 		[ExportMenuItem(OwnerGuid = MenuConstants.APP_MENU_DEBUG_GUID, Header = "res:ToggleBreakpointCommand", InputGestureText = "res:ShortCutKeyF9", Group = MenuConstants.GROUP_APP_MENU_DEBUG_BREAKPOINTS, Order = 0)]
 		sealed class ToggleBreakpointDebugMainMenuCommand : DebugMainMenuCommand {
 			[ImportingConstructor]

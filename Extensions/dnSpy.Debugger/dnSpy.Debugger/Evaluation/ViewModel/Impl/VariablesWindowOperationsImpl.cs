@@ -590,6 +590,26 @@ namespace dnSpy.Debugger.Evaluation.ViewModel.Impl {
 			set => debuggerSettings.ShowOnlyPublicMembers = value;
 		}
 
+		public override bool HideCompilerGeneratedMembers {
+			get => debuggerSettings.HideCompilerGeneratedMembers;
+			set => debuggerSettings.HideCompilerGeneratedMembers = value;
+		}
+
+		public override bool ShowCompilerGeneratedVariables {
+			get => debuggerSettings.ShowCompilerGeneratedVariables;
+			set => debuggerSettings.ShowCompilerGeneratedVariables = value;
+		}
+
+		public override bool ShowRawStructureOfObjects {
+			get => debuggerSettings.ShowRawStructureOfObjects;
+			set => debuggerSettings.ShowRawStructureOfObjects = value;
+		}
+
+		public override bool StepOverPropertiesAndOperators {
+			get => debuggerSettings.StepOverPropertiesAndOperators;
+			set => debuggerSettings.StepOverPropertiesAndOperators = value;
+		}
+
 		public override bool ShowNamespaces {
 			get => dbgEvalFormatterSettings.ShowNamespaces;
 			set => dbgEvalFormatterSettings.ShowNamespaces = value;
